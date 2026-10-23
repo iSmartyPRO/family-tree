@@ -5,7 +5,7 @@ services:
       dockerfile: Dockerfile.dev
       args:
         APP_VERSION: ${APP_VERSION:-}
-    container_name: ${DOCKER_NAME:-iapp-skeleton}-dev
+    container_name: ${DOCKER_NAME:-family}-dev
     ports:
       - "127.0.0.1:3020:3000"  # Frontend Vite dev server (this machine only)
       - "127.0.0.1:3021:3001"  # Backend API (this machine only)

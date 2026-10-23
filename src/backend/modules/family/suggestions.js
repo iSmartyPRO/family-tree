@@ -145,6 +145,19 @@ async function applyRow(ctx, row) {
   throw httpError(400, 'Unknown suggestion', 'BAD_KIND');
 }
 
+/** Fields worth naming in the log: for a new relative only those actually filled in. */
+function changedFields(payload) {
+  if (!payload.person) return Object.keys(payload);
+  const p = payload.person;
+  return Object.keys(p).filter((k) => {
+    const v = p[k];
+    if (k === 'firstName' || k === 'lastName' || k === 'familyOrder' || k === 'contacts') return false;
+    if (k === 'gender') return v && v !== 'unknown';
+    if (k === 'isAlive') return v === false;
+    return v !== null && v !== undefined && v !== '' && !(Array.isArray(v) && !v.length);
+  });
+}
+
 // ── Public side ─────────────────────────────────────────────────────────────
 
 export async function suggest(share, input = {}, visitor = null) {
@@ -166,10 +179,10 @@ export async function suggest(share, input = {}, visitor = null) {
       throw err;
     }
     await query(`UPDATE family_suggestions SET result_person_id = $2 WHERE id = $1`, [row.id, resultPersonId]);
-    return { applied: true, personId: resultPersonId, kind, anchorId: personId, author, changed: Object.keys(payload.person ? payload.person : payload) };
+    return { applied: true, personId: resultPersonId, kind, anchorId: personId, author, changed: changedFields(payload) };
   }
   await record(share, kind, personId, payload, author);
-  return { applied: false, kind, anchorId: personId, author, changed: Object.keys(payload.person ? payload.person : payload) };
+  return { applied: false, kind, anchorId: personId, author, changed: changedFields(payload) };
 }
 
 export async function suggestPhoto(share, personId, req, res, visitor = null) {

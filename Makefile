@@ -23,7 +23,7 @@ POSTGRES_DIR ?= /dockers/postgres
 export
 
 PROJECT_ROOT := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
-CONTAINER    := $(or $(DOCKER_NAME),iapp-skeleton)
+CONTAINER    := $(or $(DOCKER_NAME),family)
 DEV_CONTAINER := $(CONTAINER)-dev
 HOST_PORT    := $(or $(DOCKER_PORT),8092)
 DEV_FE_PORT  := 3020

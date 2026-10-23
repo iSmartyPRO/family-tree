@@ -4,7 +4,7 @@ services:
       context: .
       args:
         APP_VERSION: ${APP_VERSION:-}
-    container_name: ${DOCKER_NAME:-iapp-skeleton}
+    container_name: ${DOCKER_NAME:-family}
     ports:
       - "${DOCKER_PORT:-8092}:80"
     env_file: .env

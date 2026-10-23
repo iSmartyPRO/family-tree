@@ -1,331 +1,304 @@
 <div align="center">
 
-# iApp-Skeleton
+<img src="docs/images/family/tree-light.webp" alt="The Whitmore Family — a four-generation tree with portraits, couples and remarriages" width="960" />
 
-**A production-ready starter for web apps — sign-in, roles, admin console, setup wizard, API and a module platform, already built, themed and secured.**
+# Family Tree
 
-Clone it, point it at PostgreSQL, finish `/setup`, and spend your first week on your product instead of on login screens.
+**A self-hosted family tree that lays itself out, tells each life on a timeline, and can be shared with relatives as a link they can help complete.**
+
+Built for real families: remarriages, unknown parents, half-siblings, people who are only remembered by a year. Your data stays on your server, in PostgreSQL.
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 ![Node.js 22](https://img.shields.io/badge/node-22_LTS-339933?logo=node.js&logoColor=white)
 ![React 18](https://img.shields.io/badge/react-18-61DAFB?logo=react&logoColor=black)
-![Express 4](https://img.shields.io/badge/express-4-000000?logo=express&logoColor=white)
 ![PostgreSQL 14+](https://img.shields.io/badge/postgresql-14%2B-4169E1?logo=postgresql&logoColor=white)
 ![Docker](https://img.shields.io/badge/docker-compose-2496ED?logo=docker&logoColor=white)
-![Languages](https://img.shields.io/badge/i18n-ru%20·%20en%20·%20ky%20·%20tr%20·%20zh-8B5CF6)
+![Languages](https://img.shields.io/badge/i18n-en%20·%20ru%20·%20ky%20·%20tr%20·%20zh-8B5CF6)
+![Mobile](https://img.shields.io/badge/mobile-first--class-0EA5E9)
 
-<img src="docs/images/dashboard.png" alt="Admin console overview" width="900" />
+[Features](#features) · [Tour](#a-tour) · [Quick start](#quick-start) · [How it works](#how-it-works) · [API](#api) · [Security](#security--privacy)
 
 </div>
 
 ---
 
-## Contents
+## Why
 
-- [Why iApp-Skeleton](#why-iapp-skeleton)
-- [Features](#features)
-- [Screenshots](#screenshots)
-- [Tech stack](#tech-stack)
-- [Quick start](#quick-start)
-- [Local development](#local-development)
-- [Project structure](#project-structure)
-- [Building your product on it](#building-your-product-on-it)
-- [Configuration](#configuration)
-- [Deploying behind a reverse proxy](#deploying-behind-a-reverse-proxy)
-- [Security](#security)
-- [Operations](#operations)
-- [Testing](#testing)
-- [Documentation](#documentation)
-- [Roadmap](#roadmap)
-- [Contributing](#contributing) · [License](#license)
+Most family-tree tools either lock your family into someone else's cloud, or draw a chart that falls apart the moment a grandfather marries twice. This one is built the other way round:
 
----
-
-## Why iApp-Skeleton
-
-Every internal tool, client portal or SaaS MVP starts with the same weeks of groundwork: authentication, users and roles, an admin panel, branding, settings, Docker packaging and a way to deploy. That groundwork is rarely done carefully — and it is exactly where security holes and UX debt pile up.
-
-iApp-Skeleton is that groundwork done once, properly, and kept small:
-
-- **Plain and readable.** Express + `pg` + React. No ORM, no meta-framework, nothing to unlearn.
-- **Secure by default.** httpOnly sessions, bcrypt, lockouts, IP filtering, upload sniffing, a setup wizard that locks itself, a container that does not run the app as root.
-- **Looks finished on day one.** A themeable design system with dark mode, five interface languages, a searchable settings hub and a ⌘K command palette.
-- **Built to grow.** Your domain lives in modules: a module plugs into users, roles, settings, navigation, help, the API and the dashboard. Four reference modules show how.
+- **The layout is automatic and honest.** Couples sit side by side, children hang from the middle of their parents' line, a person who married several times keeps every family — one under another — and a parent who is not known yet shows as a placeholder you can fill in later.
+- **Dates can be as precise as memory.** `1950`, `March 1950` or `08.03.1950` are all valid; the app estimates what it does not know and shows it as an estimate.
+- **Relatives help.** Share a branch as a link. Cousins open it without an account, introduce themselves, and send photos, dates and new relatives — you approve them, or let trusted links edit directly. Every action lands in an activity log.
+- **It is yours.** One Docker container, your PostgreSQL, your files. Export to JSON or GEDCOM at any time.
 
 ## Features
 
-| Area | What you get |
-|------|--------------|
-| **First run** | Setup wizard: database → super administrator → open or closed site. Protected by a `SETUP_TOKEN` that `make env` generates; locks itself for good once finished. |
-| **Sign-in** | Password, Active Directory / LDAP (group mapping, auto-provisioning), Google, Telegram Login, one-time codes by email, Telegram or WhatsApp, magic links — each switched on per integration. |
-| **Access control** | Roles built from a permission catalog, groups that grant roles, five built-in roles, escalation-proof assignment, last-super-admin protection, *sign in as* for support. |
-| **Sessions** | httpOnly `SameSite=Lax` JWT cookie, bcrypt, per-user and per-IP lockout, rate limits, revocation on any access change, *sign out everywhere*. |
-| **User cabinet** | Profile and avatar, language, theme and time zone, password, linked accounts, notification preferences, active sessions, personal API tokens. |
-| **Admin console** | Overview, users, groups, roles, security activity log, API tokens and webhooks, and a searchable settings hub for everything configurable. |
-| **Design system** | Color templates × light/dark, custom colors, typography presets, colored or monochrome menu icons, live preview, separate dark-theme logo. |
-| **Module platform** | `/apps` launcher, `/app/<id>` pages, per-module switch and settings, requirements between modules, versions and changelogs; a disabled module is invisible in the UI and the API. |
-| **Dashboard** | Personal widgets: welcome, quick actions, notifications, recent files, new knowledge base materials, people, clock, note — rearranged per person. |
-| **Files** | My files, *Shared with me* and team spaces; sharing with people and groups; public links with password, expiry and view-only mode; trash, search, quotas, in-browser viewers and online editing (Collabora). |
-| **Knowledge base** | Folders of any depth with articles, files and links; access per folder and material; public links with a readable address, password and expiry; PDF, Word, Excel and PowerPoint in the browser. |
-| **Robot assistant** | An animated helper on every page that greets people in new sections and answers from the help content. |
-| **Help and tours** | Field hints, a searchable help center and guided tours, all translated. |
-| **Notifications** | One notification center: the bell, Web Push, email (SMTP or Gmail), Telegram, WhatsApp, Mattermost — with per-person preferences and quiet hours. |
-| **Public API** | REST API at `/api/v1` with tokens that act on behalf of a person: access templates, per-area levels, path rules, IP lists, expiry and rate limits; signed webhooks with retries; request log; developer portal with a live console and OpenAPI 3.1. |
-| **Installable app** | PWA: home-screen icon, push, offline screen and an illustrated install guide for iPhone, Android and desktop. |
-| **Landing page** | A one-page public landing (features, how it works, FAQ, contact) for open mode — all texts in `locales/<lang>/landing.js`. |
-| **Languages** | Russian, English, Kyrgyz, Turkish and Chinese across the interface, emails and help — with a check that keeps them complete. |
-| **Operations** | One production container (nginx + Node), hot-reload dev stack, `/health` and `/ready`, a Makefile for every routine task, semver `VERSION` baked into the image. |
+<table>
+<tr>
+<td width="50%" valign="top">
 
-## Screenshots
+### 🌳 The tree
+- Automatic layout — no dragging boxes around
+- Couples, remarriages one under another, step and adoptive parents
+- Placeholders for an unknown mother or father — click to fill in
+- Union states: married, partners, engaged, divorced, separated, widowed — with dates
+- Compact cards: first name and age; frames coloured by gender
+- A discreet mourning ribbon for those who have passed — years of life, *age at death* and *would be today*
+- Pan, pinch-zoom, mini-map, "show the whole tree", search with jump-to
 
-| Settings hub | Command palette (⌘K) |
-|---|---|
-| <img src="docs/images/settings-hub.png" alt="Settings hub" /> | <img src="docs/images/command-palette.png" alt="Command palette" /> |
-| **Live theme preview (dark)** | **Unsaved-changes bar** |
-| <img src="docs/images/theme-dark.png" alt="Theme settings in dark mode" /> | <img src="docs/images/save-bar.png" alt="Integration settings with save bar" /> |
-| **Sign-in with a one-time code** | **Roles and permissions** |
-| <img src="docs/images/sign-in-code.png" alt="Six-cell code entry" /> | <img src="docs/images/roles.png" alt="Role editor" /> |
-| **Sign-in methods** | **User management** |
-| <img src="docs/images/sign-in-methods.png" alt="Sign-in methods settings" /> | <img src="docs/images/users.png" alt="Users list" /> |
-| **IP filtering with self-lockout guard** | **Mobile** |
-| <img src="docs/images/ip-filtering.png" alt="IP filtering" /> | <img src="docs/images/mobile.png" alt="Mobile layout" width="260" /> |
+</td>
+<td width="50%" valign="top">
 
-| Install guide (iPhone) | Illustrated step |
-|---|---|
-| <img src="docs/images/install-guide.png" alt="Install the app guide on iPhone" width="260" /> | <img src="docs/images/install-step.png" alt="Add to Home Screen step" width="300" /> |
+### 🕰️ Timeline & list
+- Every life as a bar on one axis of years
+- Families as an outline: partner, then that couple's children, indented
+- Wedding marks, branches dropping at each child's birth
+- Unknown birth years estimated from relatives, drawn faded
+- A list view with **data completeness** per person — see at a glance whose dates or photos are missing
 
-## Tech stack
+</td>
+</tr>
+<tr>
+<td valign="top">
 
-| Layer | Choice |
-|-------|--------|
-| Frontend | React 18, React Router 6, Ant Design 5, Vite 5 |
-| Backend | Node.js 22 LTS, Express 4, `pg`, jsonwebtoken, bcryptjs, helmet, express-rate-limit, multer, nodemailer |
-| Database | PostgreSQL 14+ (external — one server can host many apps) |
-| Runtime | One Docker image: nginx serves the SPA and proxies `/api` to Node |
-| Tooling | Docker Compose, Make, `node:test` |
+### 👤 People
+- Partial dates, places, occupation, a life story, contacts
+- **"This is me"** — kinship labels everywhere: *Grandmother (father's side)*, *Uncle*, *Cousin*
+- Portraits with a full-screen viewer: grows out of the avatar, pinch/scroll zoom, swipe down to close; the uncropped original is kept next to the square portrait
+- Manual order of a person's marriages when dates are unknown
+- A date picker made for genealogy: day and month may stay *unknown*
+
+</td>
+<td valign="top">
+
+### 🔍 Views
+- Saved views: *my family*, *father's side*, *mother's side*, *my ancestors*, *my descendants*, *everyone around me*
+- Depth up and down, side branches (siblings → cousins → their children), partners on or off
+- Inside a view the person panel shows only that view — and says how many relatives are hidden
+
+</td>
+</tr>
+<tr>
+<td valign="top">
+
+### 🔗 Sharing with relatives
+- Public links to the whole tree or to a view
+- Access levels: **view**, **suggest** (you review) or **edit** (applied at once)
+- Optional password, expiry date, "save a copy to my trees"
+- Ask visitors for their **name** and, optionally or mandatorily, a **phone number**
+- Per-link **theme**: as on device, light or dark — as a default or forced
+- A friendly **helper robot** that explains what the link allows; draggable, remembers its spot
+- A suggestions inbox with before → after diffs
+
+</td>
+<td valign="top">
+
+### 🛡️ Ownership & control
+- Per-tree access for users and groups: view / edit / manage
+- **Activity log**: who opened a link, who proposed or changed what, through which link, when — with the visitor's name and phone (managers only)
+- Clone a tree or a view into a new tree
+- Import JSON (and the legacy *ftree* format), export JSON or GEDCOM
+- Five languages: English, Russian, Kyrgyz, Turkish, Chinese
+- Light and dark themes, mobile-first layouts, installable PWA
+
+</td>
+</tr>
+</table>
+
+## A tour
+
+### The tree, in the dark
+
+<img src="docs/images/family/tree-dark.webp" alt="The same tree in the dark theme" width="100%" />
+
+### A person, close up
+
+Every person opens in a side panel: kinship to you, dates with *age at death* and *would be today*, places, a life story, partners with the state of each union, children and siblings.
+
+<img src="docs/images/family/person-panel.webp" alt="Person panel: Eleanor Whitmore, grandmother on the father's side" width="100%" />
+
+<table>
+<tr>
+<td width="50%"><img src="docs/images/family/photo-viewer.webp" alt="Full-screen portrait viewer" /></td>
+<td width="50%"><img src="docs/images/family/families.webp" alt="A remarriage: Thomas's two families, one under another, with a manual order" /></td>
+</tr>
+<tr>
+<td align="center"><sub><b>Portrait viewer</b> — grows out of the avatar, zoom and pan, swipe to close</sub></td>
+<td align="center"><sub><b>Remarriages</b> — each family on its own line, in the order you choose</sub></td>
+</tr>
+</table>
+
+### Timeline, list and views
+
+<img src="docs/images/family/timeline.webp" alt="Timeline: lifelines of the whole family on one axis of years" width="100%" />
+
+<table>
+<tr>
+<td width="50%"><img src="docs/images/family/list.webp" alt="List view with data completeness" /></td>
+<td width="50%"><img src="docs/images/family/views.webp" alt="View builder: sides, depth, side branches" /></td>
+</tr>
+<tr>
+<td align="center"><sub><b>List</b> — what is known about everyone</sub></td>
+<td align="center"><sub><b>Views</b> — father's side, ancestors, everyone around me…</sub></td>
+</tr>
+</table>
+
+### Sharing with relatives
+
+<table>
+<tr>
+<td width="50%"><img src="docs/images/family/share.webp" alt="Share dialog: access, password, expiry, identity, theme, helper robot" /></td>
+<td width="50%"><img src="docs/images/family/public-gate.webp" alt="A visitor introduces themselves before the tree opens" /></td>
+</tr>
+<tr>
+<td align="center"><sub><b>Public links</b> — access, password, expiry, identity, theme</sub></td>
+<td align="center"><sub><b>Introduce yourself</b> — the owner sees who did what</sub></td>
+</tr>
+</table>
+
+<img src="docs/images/family/public-guide.webp" alt="A visitor's view of a shared link, with the helper robot explaining what they can do" width="100%" />
+
+<table>
+<tr>
+<td width="50%"><img src="docs/images/family/suggestions.webp" alt="Suggestions inbox with before → after diffs" /></td>
+<td width="50%"><img src="docs/images/family/activity-log.webp" alt="Activity log of members and link visitors" /></td>
+</tr>
+<tr>
+<td align="center"><sub><b>Suggestions</b> — review proposals from relatives</sub></td>
+<td align="center"><sub><b>Activity log</b> — every open, proposal and change</sub></td>
+</tr>
+</table>
+
+### Made for phones
+
+<img src="docs/images/family/mobile.webp" alt="Tree, person sheet and timeline on a phone" width="100%" />
+
+<p align="center"><img src="docs/images/family/date-picker.webp" alt="Date picker with unknown day and month" width="70%" /><br/><sub><b>Dates as precise as memory</b> — type <code>04121981</code> or <code>1981</code>, or pick with the day and month left <i>unknown</i></sub></p>
+
+> All people and portraits in these screenshots are fictional; the portraits are generated illustrations.
 
 ## Quick start
 
-**You need:** Docker Engine with Compose v2, and a PostgreSQL 14+ server the container can reach ([how to create the database](docs/postgres-setup.md)).
+**You need:** Docker Engine with Compose v2 and a PostgreSQL 14+ server the container can reach ([creating the database](docs/postgres-setup.md)).
 
 ```bash
-git clone git@github.com:ORG/iapp-skeleton.git my-product
-cd my-product
+git clone https://github.com/iSmartyPRO/family.git
+cd family
 
 make env        # creates .env, generates JWT_SECRET and prints a SETUP_TOKEN
-$EDITOR .env    # FRONTEND_URL, DOCKER_NAME, DOCKER_PORT, POSTGRES_*
+$EDITOR .env    # FRONTEND_URL, DOCKER_PORT, POSTGRES_*
 make network    # creates the docker-lan network if missing
 make up         # builds and starts the production container
 make health
 ```
 
-Open `http://127.0.0.1:8092` (or your `DOCKER_PORT`) — you land in the **setup wizard**. Enter the `SETUP_TOKEN` that `make env` printed, then:
+Open `http://127.0.0.1:8092` (or your `DOCKER_PORT`). The **setup wizard** asks for the `SETUP_TOKEN`, then the database, then the first administrator. After that, open **Family tree** from the app launcher, create a tree — or import one — and start adding people.
 
-1. **Database** — host, database, user, password → *Test* → *Save*. Credentials go to `.env`; tables are created.
-2. **Administrator** — username and password (10+ characters).
-3. **Access** — **Closed** (everyone sees the sign-in form) or **Open** (the public landing; cabinet and console stay private).
+> [!TIP]
+> Putting it on the internet? Run it behind a reverse proxy with TLS and set `FRONTEND_URL=https://…` so session cookies get the `Secure` flag. See [docs/platform.md → reverse proxy](docs/platform.md#deploying-behind-a-reverse-proxy).
 
-> [!IMPORTANT]
-> When setup completes, the app writes `SETUP_LOCKED=true` to `.env` and the wizard can never be reopened — not even during a database outage.
-
-## Local development
-
-**With Docker** — source is bind-mounted, both servers hot-reload:
+### Local development
 
 ```bash
-make dev
+make dev                 # Docker: UI on :3020 (Vite), API on :3021, hot reload
+# or without Docker (Node 22 + PostgreSQL):
+make install
+cd src/backend  && npm run dev    # API on :3001
+cd src/frontend && npm run dev    # UI on :3000, proxies /api
 ```
 
-| URL | Service |
-|-----|---------|
-| http://127.0.0.1:3020 | Vite dev server (UI) |
-| http://127.0.0.1:3021 | Express API |
-
-Run `make dev-rebuild` after changing a `package.json`.
-
-**Without Docker** — Node 22 and a reachable PostgreSQL. Put the connection into `.env` at the repository root (copy `.env.example`), then:
+### Tests
 
 ```bash
-make install                     # npm ci in both packages
-cd src/backend  && npm run dev   # API on :3001 (reads ../../.env)
-cd src/frontend && npm run dev   # UI on :3000, proxies /api to :3001
+cd src/backend  && npm test             # tree rules, view selection, security, API
+cd src/frontend && npm run i18n:check   # every key in all five languages
 ```
-
-On Windows without `make`, run `npm ci` in `src/backend` and `src/frontend` instead of `make install`.
-
-## Project structure
-
-```
-.
-├── Dockerfile · Dockerfile.dev · docker-compose*.yml · nginx.conf · start.sh
-├── Makefile                    # env, up, dev, logs, release, database helpers
-├── VERSION                     # the single source of the app version
-├── docs/                       # developer guides (see Documentation)
-└── src/
-    ├── backend/
-    │   ├── config/             # env bootstrap, PostgreSQL pool, paths, version
-    │   ├── middleware/         # auth, IP guard, setup guard, uploads, errors
-    │   ├── routes/             # auth, setup, account, admin, platform, notifications, pwa
-    │   ├── services/           # users, rbac, settings, security, sign-in, integrations, notifications, scheduler
-    │   ├── api/                # public API: tokens, scopes, templates, webhooks, OpenAPI
-    │   ├── modules/            # module platform + files, kb, dashboard, assistant
-    │   ├── locales/            # server texts (emails, notifications) in 5 languages
-    │   └── test/               # node:test unit tests
-    └── frontend/src/
-        ├── admin/              # console structure: navigation + settings page map
-        ├── modules/            # module UI: registry, manifest, files, kb, dashboard, assistant
-        ├── pages/              # Home (landing), Login, SetupWizard, account/*, admin/*
-        ├── help/ · tour/       # help center and guided tours
-        ├── components/         # header, command palette, icons, UI kit
-        ├── context/ · hooks/   # Auth, Settings, Locale, Theme; settings forms
-        ├── locales/            # interface texts: <lang>/<namespace>.js
-        └── theme/              # color templates, typography presets
-```
-
-## Building your product on it
-
-| You want to… | Start here |
-|---|---|
-| Rename and brand the project | [docs/adapt.md](docs/adapt.md) — names, logos, `.env`, landing texts |
-| Add your domain (orders, devices, bookings…) | [docs/modules.md](docs/modules.md) — a module with its tables, API, page, settings, permissions, help and tests |
-| Add a settings screen, page, endpoint or integration | [docs/extending.md](docs/extending.md) |
-| Change the landing page | `src/frontend/src/locales/<lang>/landing.js` and `src/frontend/src/pages/Home.jsx` |
-| Add or edit texts | [docs/i18n.md](docs/i18n.md) — every text in all five languages, checked by `npm run i18n:check` |
-
-Adding a settings screen, for example, is three steps — the sidebar, settings hub, command palette and icon editor follow automatically:
-
-```js
-// 1. src/frontend/src/admin/navigation.js — add an item to a group
-{ id: 'billing', defaultIcon: 'chart', keywords: 'billing invoices' }
-
-// 2. src/frontend/src/admin/settingsPages.js — register the screen (lazy chunk)
-billing: lazy(() => import('../pages/admin/settings/Billing')),
-
-// 3. src/frontend/src/locales/<lang>/settings.js — billing.title / billing.desc
-```
-
-Modules you do not need can be switched off in **Settings → Modules** or removed entirely.
 
 ## Configuration
 
-Bootstrap configuration lives in `.env` (git-ignored; template: [`.env.example`](.env.example)). Everything else — name, logos, theme, integrations, security policy — is stored in PostgreSQL and edited in the console.
+Bootstrap settings live in `.env` (template: [`.env.example`](.env.example)); everything else is edited in the admin console and stored in PostgreSQL.
 
 | Variable | Default | Purpose |
-|----------|---------|---------|
-| `DOCKER_NAME` / `DOCKER_PORT` | `iapp-skeleton` / `8092` | Container name and published HTTP port |
-| `FRONTEND_URL` | `http://localhost:8092` | Public origin: CORS, and `Secure` cookies when `https://` |
-| `JWT_SECRET` | generated by `make env` | Session signing key — **required** in production |
-| `SETUP_TOKEN` | generated by `make env` | Secret the setup wizard asks for until setup is locked |
-| `SETUP_LOCKED` | written by the app | Keeps the wizard closed after setup |
-| `POSTGRES_*` / `DATABASE_URL` | — | Database connection (the wizard can write `POSTGRES_*`) |
-| `TRUST_PROXY_HOPS` | `1` | Reverse proxies in front of Express (see below) |
-| `COOKIE_SECURE` | unset | Force `Secure` cookies when TLS terminates upstream |
-| `TZ` / `UPLOAD_DIR` | `UTC` / `/app/uploads` | Time zone and file storage |
+|---|---|---|
+| `DOCKER_NAME` / `DOCKER_PORT` | `family` / `8092` | Container name and published port |
+| `FRONTEND_URL` | `http://localhost:8092` | Public origin; `https://` enables `Secure` cookies |
+| `JWT_SECRET` | generated by `make env` | Signs sessions and visitor tokens — **required** in production |
+| `SETUP_TOKEN` | generated by `make env` | Protects the first-run wizard |
+| `POSTGRES_*` / `DATABASE_URL` | — | Database connection |
+| `TRUST_PROXY_HOPS` | `1` | Reverse proxies in front of the app |
+| `TZ` / `UPLOAD_DIR` | `UTC` / `/app/uploads` | Time zone and photo storage |
 
-Full reference: [docs/configuration.md](docs/configuration.md).
+Module settings (**Console → Settings → Family tree**): the largest photo, whether public links are allowed at all, whether every link must have a password, and the longest a link may live.
 
-## Deploying behind a reverse proxy
+## How it works
 
-The container runs nginx, which counts as **one** proxy hop. With another proxy in front (host nginx, Traefik, Nginx Proxy Manager, Cloudflare):
+```
+src/backend/modules/family/      Express routes over PostgreSQL (no ORM)
+  schema.js        tables, created and migrated on start
+  rules.js         pure checks: partial dates, two parents at most, no cycles, couples
+  service.js       trees, people, links, photos, import / export (JSON, GEDCOM)
+  selection.js     who a view shows (pure, tested)
+  views.js         "me", saved views, cloning
+  shares.js        public links: tokens, passwords, expiry, identity, theme
+  suggestions.js   proposals from links: suggest / edit, review
+  log.js           activity log
 
-```env
-FRONTEND_URL=https://app.example.com
-TRUST_PROXY_HOPS=2
+src/frontend/src/modules/family/   React + Ant Design
+  layout.js        the tree layout
+  timeline.js      lifelines
+  kinship.js       "Grandmother (father's side)" labels
+  components/      canvas, panels, dialogs, photo viewer, date picker, helper robot
+  pages/           tree list, tree view;  PublicTree.jsx — the shared-link page
 ```
 
-and forward the client address:
+**The layout in short.** Couples (recorded, or implied by a shared child) form units; units are placed in generations; each subtree is packed against its neighbours by its per-row contour (Reingold–Tilford style), with parents centred over their children. A person with several families appears under themselves once per family, joined by a dashed "same person" line; a married-in person's other families sit beside the family they married into. Coordinates are never stored — the tree is laid out on every render, so edits never leave a mess. Details: [docs/family.md](docs/family.md).
 
-```nginx
-location / {
-    proxy_pass         http://127.0.0.1:8092;
-    proxy_set_header   Host              $host;
-    proxy_set_header   X-Real-IP         $remote_addr;
-    proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
-    proxy_set_header   X-Forwarded-Proto $scheme;
-}
-```
+**Partial dates** are stored as `YYYY`, `YYYY-MM` or `YYYY-MM-DD` and compared on the precision both sides have; missing birth years are estimated from relatives (±28 years a generation) for the timeline only.
 
-> [!WARNING]
-> With the wrong hop count every visitor appears to have the proxy's IP — one brute-force attempt locks everyone out and IP allow-lists stop working. Too high a value lets clients spoof their IP.
+**Photos** are prepared in the browser: a square portrait (640 px, centred on the face) for cards and an uncropped original (up to 2048 px) for the viewer. The server checks both by content and stores them outside the database.
 
-## Security
+## API
 
-The threat model and go-live checklist are in [docs/security.md](docs/security.md). Highlights:
+Everything the UI does is available as JSON — signed-in users at `/api/app/family/…`, anonymous visitors at `/api/t/:token/…`.
 
-- **Access control** — permission-checked routes, no privilege escalation (you can only grant what you hold), and the product can never lose its last super administrator.
-- **Sessions and sign-in** — httpOnly `SameSite=Lax` cookies, `Secure` on HTTPS; password or access changes revoke every outstanding session; one-time codes are short-lived, single-use, hashed and rate-limited; lockouts per username and per IP.
-- **Setup wizard** — a generated `SETUP_TOKEN`, only the browser that created the administrator may finish it, locked for good afterwards.
-- **API tokens** — they only narrow their owner's rights, never widen them, and can never touch credentials, sessions or linked sign-in identities.
-- **Public links** — passwords of 8+ characters, brute-force limits per address and per link, view-only mode, anonymous requests rate-limited.
-- **Data and files** — parameterized SQL everywhere, write-only integration secrets, upload magic-byte checks, user files served with a sandboxing CSP.
-- **Container** — the app runs as an unprivileged user, base images are pinned by digest, the dev stack listens on localhost only.
+| | |
+|---|---|
+| Trees | `GET/POST /trees`, `GET/PUT/DELETE /trees/:id`, `PUT /trees/:id/access`, `POST /trees/:id/clone` |
+| People | `POST /trees/:id/persons` (optionally with a `relation`: parent, child, partner, sibling, co-parent), `PUT/DELETE /persons/:id`, `POST/DELETE /persons/:id/photo` |
+| Links | `POST /trees/:id/parents`, `POST /trees/:id/unions`, `PUT/DELETE /parents/:id`, `PUT/DELETE /unions/:id` |
+| Views | `GET/POST /trees/:id/views`, `PUT/DELETE /views/:id`, `POST /trees/:id/select`, `PUT /trees/:id/me` |
+| Sharing | `GET/POST /trees/:id/shares`, `PUT/DELETE /shares/:id`, `GET /trees/:id/suggestions`, `POST /suggestions/:id/accept` · `/reject`, `GET /trees/:id/log` |
+| Data | `GET /trees/:id/export?format=gedcom`, `POST /trees/:id/import` |
+| Public | `GET /t/:token`, `POST /t/:token/unlock` · `/hello` · `/suggest`, `POST /t/:token/persons/:id/photo` |
 
-Report vulnerabilities privately — see [SECURITY.md](SECURITY.md).
+Personal API tokens and webhooks come with the platform — see [docs/public-api.md](docs/public-api.md).
 
-## Operations
+## Security & privacy
 
-```bash
-make help    # every target with a description
-```
+- **Your server, your data.** No telemetry, no third-party services; photos stay on your disk.
+- **Per-tree access control** for users and groups; module administrators see everything.
+- **Public links** carry a random token, an optional bcrypt password (rate-limited unlocks), an expiry and a version bumped on revoke. Visitors only ever see and touch people inside the link's view, and contacts are never shown.
+- **Visitor identity** is signed per link; a stricter rule (a phone now required) invalidates older introductions.
+- **Suggestions are claimed atomically** — a double click cannot apply a change twice; link edits are serialised per tree, so the two-parents and no-cycles rules hold under concurrency.
+- **Uploads** are allow-listed by extension, verified by magic bytes, stored under random keys and served with `nosniff` and a sandbox CSP.
+- **Rate limits** on introductions, proposals, uploads, copies and pending proposals per link.
+- The platform adds sign-in with lockouts, sessions, CSRF protection, IP allow-lists and an audit trail — see [docs/security.md](docs/security.md).
 
-| Task | Command |
-|------|---------|
-| Start / stop / rebuild production | `make up` · `make down` · `make rebuild` |
-| Health, readiness, status | `make health` · `make ready` · `make status` |
-| Logs and shell | `make logs` · `make logs-tail LINES=200` · `make shell` |
-| Development stack | `make dev` · `make dev-logs` · `make dev-down` |
-| Release a version | `make bump-patch` (or `-minor`, `-major`) → `make rebuild` |
-| Database helpers | `make psql` · `make sql SQL="SELECT 1"` · `make db-setup PASSWORD=…` |
-| Sample users | `make seed-demo` (no passwords; for demos and staging) |
+## Built on
 
-Backups, upgrades and troubleshooting: [docs/operations.md](docs/operations.md).
+This app is a module on **[iApp-Skeleton](https://github.com/iSmartyPRO/iApp-Skeleton)** — sign-in, roles, admin console, setup wizard, help, guided tours, notifications, PWA and a public API come from there. The platform's own guide is in [docs/platform.md](docs/platform.md).
 
-## Testing
-
-```bash
-make test                          # backend unit tests + frontend production build
-cd src/backend  && npm test        # node:test unit tests
-cd src/backend  && npm run check   # syntax check of every backend file
-cd src/frontend && npm run i18n:check
-```
-
-Database tests (`*.db.test.js`) run against a throwaway database when their environment variables are set; see each file's header.
-
-## Documentation
-
-| Guide | Contents |
-|-------|----------|
-| [Getting started](docs/getting-started.md) | From `git clone` to a running product |
-| [Architecture](docs/architecture.md) | Request flow, data model, frontend areas, UI kit |
-| [Adapting the skeleton](docs/adapt.md) | Renaming, branding and what not to rewrite |
-| [Modules](docs/modules.md) | The module platform and how to write a module |
-| [Extending](docs/extending.md) | Recipes: settings screens, pages, endpoints, integrations, tours, demo data |
-| [Access control & sign-in](docs/access-control.md) | Roles, groups, permissions, sign-in methods |
-| [Public API](docs/public-api.md) | Tokens, access templates, webhooks, developer portal, OpenAPI |
-| [HTTP API](docs/api.md) | Every endpoint with its guard |
-| [Notifications](docs/notifications.md) | Notification center, channels, Web Push, scheduler |
-| [Integrations](docs/integrations.md) | Email, Telegram, WhatsApp, Wazzup, Mattermost, Google, documents, Active Directory |
-| [Dashboard](docs/dashboard.md) · [Files](docs/files.md) · [Knowledge base](docs/knowledge-base.md) · [Robot assistant](docs/assistant.md) | The reference modules |
-| [In-app help](docs/help.md) · [Localization](docs/i18n.md) | Help content, tours and the five languages |
-| [Online document editing](docs/office-editing.md) · [Link previews](docs/link-previews.md) · [PWA](docs/pwa.md) | Collabora, messenger cards, the installable app |
-| [Time zones and formats](docs/datetime.md) | Portal and personal time zones, formats, rules for code |
-| [Configuration](docs/configuration.md) · [Security](docs/security.md) · [Operations](docs/operations.md) | Running it in production |
-| [PostgreSQL](docs/postgres-setup.md) · [Publishing to GitHub](docs/github.md) | Database setup, first push without leaking secrets |
-| [Changelog](CHANGELOG.md) | Release history |
-
-## Roadmap
-
-- [ ] Module generator (`make module NAME=orders`)
-- [ ] GitHub Actions workflow: tests, database tests, image build
-- [ ] Encrypt integration secrets at rest
-- [ ] Versioned SQL migrations
-- [ ] End-to-end tests with Playwright
-- [ ] TOTP two-factor authentication and passkeys
+| Layer | |
+|---|---|
+| Backend | Node.js 22, Express 4, `pg`, `multer`, JWT |
+| Frontend | React 18, Vite, Ant Design 5 |
+| Database | PostgreSQL 14+ |
+| Delivery | One Docker image (nginx + Node), Compose |
 
 ## Contributing
 
-Contributions that keep the skeleton small, secure and easy to build on are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request; security-sensitive changes need a short threat note.
+Issues and pull requests are welcome. Please run the backend tests and `npm run i18n:check` before sending a change, and keep new interface text in all five languages. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
-[MIT](LICENSE) © iApp-Skeleton. Developed by [iSmartyPro](https://www.ismarty.pro).
+[MIT](LICENSE) © iSmartyPro
