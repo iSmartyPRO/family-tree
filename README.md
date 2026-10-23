@@ -182,8 +182,8 @@ Every person opens in a side panel: kinship to you, dates with *age at death* an
 **You need:** Docker Engine with Compose v2 and a PostgreSQL 14+ server the container can reach ([creating the database](docs/postgres-setup.md)).
 
 ```bash
-git clone https://github.com/iSmartyPRO/family.git
-cd family
+git clone https://github.com/iSmartyPRO/family-tree.git
+cd family-tree
 
 make env        # creates .env, generates JWT_SECRET and prints a SETUP_TOKEN
 $EDITOR .env    # FRONTEND_URL, DOCKER_PORT, POSTGRES_*
