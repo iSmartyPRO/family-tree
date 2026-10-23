@@ -1,0 +1,16 @@
+export default {
+  enabledDesc: "面向所有已登录用户的家谱：成员、照片、自动布局和共享。",
+  open: "家谱与访问权限",
+  openDesc: "每个家谱都有自己的访问列表：所有者可向个人、群组或角色授予查看或编辑权限。",
+  openLink: "打开家谱",
+  maxPhoto: "照片大小上限",
+  maxPhotoDesc: "照片在上传前会在浏览器中压缩；这是单个文件的硬性上限。",
+  mb: "MB",
+  links: "公开链接",
+  publicLinks: "允许公开链接",
+  publicLinksDesc: "所有者可以向门户外的人展示只读家谱。",
+  requirePassword: "必须设置密码",
+  requirePasswordDesc: "每个新链接都必须设置密码。",
+  maxDays: "链接最长有效期",
+  maxDaysDesc: "0 — 不限制。",
+};

@@ -1,0 +1,7 @@
+# Text files are stored with LF in the repository; each checkout uses its platform's line endings.
+* text=auto
+
+# Shell scripts run inside Linux containers: always LF, whatever the checkout platform.
+*.sh text eol=lf
+Dockerfile* text eol=lf
+nginx.conf text eol=lf

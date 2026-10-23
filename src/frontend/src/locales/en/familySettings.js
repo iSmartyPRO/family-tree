@@ -1,0 +1,16 @@
+export default {
+  enabledDesc: "Family trees for everyone signed in: people, photos, automatic layout and sharing.",
+  open: "Trees and access",
+  openDesc: "Each tree has its own access list: owners give view or edit rights to people, groups or roles.",
+  openLink: "Open family trees",
+  maxPhoto: "Photo size limit",
+  maxPhotoDesc: "Photos are shrunk in the browser before upload; this is the hard limit per file.",
+  mb: "MB",
+  links: "Public links",
+  publicLinks: "Allow public links",
+  publicLinksDesc: "Owners can share a read-only tree with people outside the portal.",
+  requirePassword: "Require a password",
+  requirePasswordDesc: "Every new link must have a password.",
+  maxDays: "Longest link lifetime",
+  maxDaysDesc: "0 — no limit.",
+};

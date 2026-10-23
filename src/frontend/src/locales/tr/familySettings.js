@@ -1,0 +1,16 @@
+export default {
+  enabledDesc: "Giriş yapan herkes için soy ağaçları: kişiler, fotoğraflar, otomatik yerleşim ve paylaşım.",
+  open: "Ağaçlar ve erişim",
+  openDesc: "Her ağacın kendi erişim listesi vardır: sahipler kişilere, gruplara veya rollere görüntüleme ya da düzenleme hakkı verir.",
+  openLink: "Soy ağaçlarını aç",
+  maxPhoto: "Fotoğraf boyutu sınırı",
+  maxPhotoDesc: "Fotoğraflar gönderilmeden önce tarayıcıda küçültülür; bu dosya başına kesin sınırdır.",
+  mb: "MB",
+  links: "Herkese açık bağlantılar",
+  publicLinks: "Herkese açık bağlantılara izin ver",
+  publicLinksDesc: "Sahipler ağacı portal dışındaki kişilere salt okunur olarak gösterebilir.",
+  requirePassword: "Parola zorunlu olsun",
+  requirePasswordDesc: "Her yeni bağlantı parolalı olmalı.",
+  maxDays: "En uzun bağlantı süresi",
+  maxDaysDesc: "0 — sınırsız.",
+};

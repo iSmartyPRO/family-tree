@@ -1,0 +1,60 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+id_rsa*
+
+# Build outputs
+dist/
+build/
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing
+coverage/
+.nyc_output/
+
+# Cache
+.cache/
+.parcel-cache/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Uploads (runtime)
+data/uploads/
+uploads/
+
+# Copied from node_modules at build time
+src/frontend/public/pdfjs/
+
+# Python bytecode
+__pycache__/
+
+# Local data, database dumps and personal tool settings
+data/
+*.sql
+*.dump
+*.bak
+.claude/settings.local.json

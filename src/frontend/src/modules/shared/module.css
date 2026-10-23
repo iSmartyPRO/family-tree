@@ -1,0 +1,1082 @@
+/* ── Module shell shared by Tasks and Calendar (KB keeps its own kb-*) ───── */
+
+.mod-shell {
+  flex: 1;
+  display: grid;
+  grid-template-columns: var(--mod-side-w, 280px) minmax(0, 1fr);
+  min-height: 0;
+}
+
+.mod-shell__side {
+  border-right: 1px solid var(--da-hairline);
+  background: color-mix(in srgb, var(--da-bg) 55%, transparent);
+}
+
+.mod-side {
+  position: sticky;
+  top: var(--da-header-h);
+  max-height: calc(100vh - var(--da-header-h));
+  overflow-y: auto;
+  padding: 18px 14px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  scrollbar-width: thin;
+}
+
+.mod-side__brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 6px;
+  color: inherit;
+  font-size: 16px;
+  font-weight: 750;
+}
+
+.mod-side__brand .da-icon {
+  width: 30px;
+  height: 30px;
+}
+
+.mod-side__label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 10px 6px -2px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--da-faint);
+}
+
+.mod-side__label button {
+  border: 0;
+  background: transparent;
+  color: var(--da-muted);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+
+.mod-side__label button:hover {
+  background: var(--da-tint);
+  color: var(--da-primary);
+}
+
+.mod-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mod-nav__link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 7px 10px;
+  border-radius: 10px;
+  color: inherit;
+  font-size: 14px;
+  transition: background 0.15s var(--da-ease);
+}
+
+.mod-nav__link:hover {
+  background: var(--da-tint);
+  color: inherit;
+}
+
+.mod-nav__link.active {
+  background: var(--da-surface);
+  color: var(--da-primary);
+  font-weight: 650;
+  box-shadow: var(--da-shadow-sm), inset 0 0 0 1px var(--da-hairline);
+}
+
+/* Up to two lines, so long names in any language ("Beni bekleyenler (tüm
+   modüller)") stay readable; longer ones end with an ellipsis. */
+.mod-nav__text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  white-space: normal;
+  line-height: 1.3;
+}
+
+.mod-nav__count {
+  min-width: 22px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: var(--da-tint);
+  color: var(--da-muted);
+  font-size: 11.5px;
+  font-weight: 700;
+  line-height: 20px;
+  text-align: center;
+}
+
+.mod-nav__count.is-alert {
+  background: color-mix(in srgb, var(--da-error) 14%, transparent);
+  color: var(--da-error);
+}
+
+.mod-dot {
+  flex-shrink: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: 4px;
+  background: var(--c, var(--da-primary));
+}
+
+.mod-shell__main {
+  min-width: 0;
+  padding: 26px clamp(16px, 3vw, 40px) 120px;
+}
+
+.mod-shell__menu {
+  display: none !important;
+  margin-bottom: 14px;
+}
+
+.mod-hero {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 20px 24px;
+  margin-bottom: 18px;
+  border-radius: 20px;
+  border: 1px solid var(--da-hairline);
+  background:
+    radial-gradient(120% 140% at 0% 0%, color-mix(in srgb, var(--c, var(--da-primary)) 12%, transparent), transparent 60%),
+    var(--da-surface);
+  box-shadow: var(--da-shadow-sm);
+}
+
+.mod-hero__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--c, var(--da-primary)) 14%, transparent);
+  color: var(--c, var(--da-primary));
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.mod-hero__text {
+  flex: 1 1 0;
+  min-width: min(220px, 100%);
+}
+
+.mod-hero__text h1 {
+  margin: 0;
+  font-size: clamp(22px, 2.6vw, 30px);
+  line-height: 1.15;
+}
+
+.mod-hero__text p {
+  margin: 6px 0 0;
+  color: var(--da-muted);
+}
+
+.mod-hero__actions {
+  display: flex;
+  flex: none;
+  flex-wrap: nowrap;
+  gap: 8px;
+}
+
+.mod-hero__actions > * {
+  flex: none;
+}
+
+/* Phones: actions get their own row instead of squeezing the title. */
+@media (max-width: 520px) {
+  .mod-hero__actions {
+    flex: 1 1 100%;
+    flex-wrap: wrap;
+  }
+}
+
+.mod-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.mod-toolbar__grow {
+  flex: 1;
+}
+
+.swatches--sm .swatch {
+  width: 24px;
+  height: 24px;
+}
+
+.person {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.person > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.acl-hint {
+  margin-top: 10px;
+  color: var(--da-muted);
+  font-size: 13px;
+}
+
+@media (max-width: 900px) {
+  .mod-shell {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .mod-shell__side {
+    display: none;
+  }
+
+  .mod-shell__menu {
+    display: inline-flex !important;
+  }
+
+  .mod-shell__main {
+    padding: 16px 14px 100px;
+  }
+
+  .mod-hero {
+    padding: 16px;
+    border-radius: 16px;
+  }
+}
+
+.mod-pill {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 10px;
+  padding: 2px 10px;
+  border-radius: 99px;
+  font-size: 12px;
+  font-weight: 600;
+  vertical-align: middle;
+  color: var(--da-muted);
+  background: color-mix(in srgb, var(--da-text) 6%, transparent);
+}
+
+/* Shared form and list bits */
+.toolbar-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--da-muted);
+  white-space: nowrap;
+}
+
+.prio-label,
+.status-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.status-pip {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--c, #94a3b8);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--c, #94a3b8) 22%, transparent);
+}
+
+.visibility-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.visibility-options .ant-radio-wrapper {
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--da-hairline);
+}
+
+.visibility-options .ant-radio-wrapper-checked {
+  border-color: var(--da-primary);
+  background: var(--da-tint);
+}
+
+.visibility-options strong {
+  display: block;
+}
+
+.visibility-options span span {
+  color: var(--da-muted);
+  font-size: 13px;
+}
+
+.form-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 14px;
+}
+
+.dialog-lead,
+.dialog-note {
+  color: var(--da-muted);
+  font-size: 13px;
+}
+
+@media (max-width: 900px) {
+  .form-grid-2 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ── Collapsible sidebar rail (SideRail.jsx), desktop only ──────────────── */
+
+.mod-shell {
+  --mod-side-w: 280px;
+  /* 20px icons keep their exact x position: 24px inset on both sides. */
+  --mod-rail-w: 68px;
+}
+
+.mod-shell__side {
+  position: relative;
+  min-width: 0;
+}
+
+.mod-rail-anchor {
+  display: none;
+}
+
+@media (min-width: 901px) {
+  .mod-shell.is-side-collapsed {
+    grid-template-columns: var(--mod-rail-w) minmax(0, 1fr);
+  }
+
+  /* Sticky zero-height anchor: the edge toggle follows the page scroll. */
+  .mod-rail-anchor {
+    display: block;
+    position: sticky;
+    top: var(--da-header-h);
+    z-index: 6;
+    height: 0;
+  }
+
+  .mod-rail-toggle {
+    position: absolute;
+    top: 22px;
+    right: -13px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    border: 1px solid var(--da-hairline);
+    border-radius: 50%;
+    background: var(--da-surface);
+    color: var(--da-muted);
+    box-shadow: var(--da-shadow);
+    cursor: pointer;
+    transition:
+      color 0.15s var(--da-ease),
+      border-color 0.15s var(--da-ease),
+      background 0.15s var(--da-ease),
+      transform 0.15s var(--da-ease);
+  }
+
+  .mod-rail-toggle svg {
+    transition: transform 0.28s var(--da-ease);
+  }
+
+  .mod-rail-toggle:hover,
+  .mod-shell__side:hover .mod-rail-toggle {
+    color: var(--da-primary);
+    border-color: color-mix(in srgb, var(--da-primary) 40%, var(--da-hairline));
+  }
+
+  .mod-rail-toggle:hover {
+    background: color-mix(in srgb, var(--da-primary) 8%, var(--da-surface));
+    transform: scale(1.08);
+  }
+
+  .mod-rail-toggle:focus-visible {
+    outline: 2px solid var(--da-primary);
+    outline-offset: 2px;
+  }
+
+  .is-collapsed .mod-rail-toggle svg {
+    transform: rotate(180deg);
+  }
+
+  .mod-shell__side .mod-side {
+    overflow-x: hidden;
+  }
+
+  .mod-shell__side .mod-nav__link,
+  .mod-shell__side .mod-side__brand {
+    white-space: nowrap;
+  }
+
+  /* Collapsed rail */
+  .mod-shell__side.is-collapsed .mod-side {
+    padding-inline: 14px;
+  }
+
+  .mod-shell__side.is-collapsed .mod-nav__text,
+  .mod-shell__side.is-collapsed .mod-side__brand > span:not(.da-icon) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .mod-shell__side.is-collapsed .mod-side__brand {
+    padding-inline: 5px;
+  }
+
+  .mod-shell__side.is-collapsed .mod-nav__link {
+    position: relative;
+    padding-inline: 10px;
+    min-height: 36px;
+  }
+
+  .mod-shell__side.is-collapsed .mod-dot {
+    width: 12px;
+    height: 12px;
+    margin-inline: 4px;
+    border-radius: 5px;
+  }
+
+  /* Count → small badge on the icon's corner. */
+  .mod-shell__side.is-collapsed .mod-nav__count {
+    position: absolute;
+    top: 1px;
+    right: -2px;
+    min-width: 17px;
+    height: 17px;
+    padding: 0 4px;
+    font-size: 10px;
+    line-height: 17px;
+    letter-spacing: -0.01em;
+    background: color-mix(in srgb, var(--da-primary) 16%, var(--da-bg));
+    color: var(--da-primary);
+    box-shadow: 0 0 0 2px var(--da-bg);
+  }
+
+  .mod-shell__side.is-collapsed .mod-nav__count.is-alert {
+    background: var(--da-error);
+    color: #fff;
+  }
+
+  /* Section titles collapse into a hairline divider. */
+  .mod-shell__side.is-collapsed .mod-side__label {
+    height: 1px;
+    margin: 6px 8px;
+    overflow: hidden;
+    background: var(--da-hairline);
+    font-size: 0;
+    color: transparent;
+  }
+
+  .mod-shell__side.is-collapsed .mod-side__label > * {
+    display: none;
+  }
+
+  /* Anything else (filters, lists, buttons) is hidden unless it opts in. */
+  .mod-shell__side.is-collapsed .mod-side > :not(.mod-side__brand, .mod-nav, .mod-side__label, .mod-rail-keep) {
+    display: none;
+  }
+
+  .mod-rail-create.ant-btn {
+    align-self: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    font-size: 17px;
+  }
+
+  /* Hover label of a rail item (rendered into document.body). */
+  .mod-rail-tip {
+    position: fixed;
+    z-index: 1100;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    max-width: 280px;
+    padding: 6px 11px;
+    border-radius: 9px;
+    background: color-mix(in srgb, var(--da-text) 92%, var(--da-bg));
+    color: var(--da-bg);
+    box-shadow: var(--da-shadow-lg);
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.3;
+    white-space: nowrap;
+    pointer-events: none;
+    transform: translateY(-50%);
+  }
+
+  .mod-rail-tip > span:first-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .mod-rail-tip::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: -4px;
+    width: 8px;
+    height: 8px;
+    background: inherit;
+    border-radius: 2px;
+    transform: translateY(-50%) rotate(45deg);
+  }
+
+  .mod-rail-tip__count {
+    padding: 0 6px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--da-bg) 22%, transparent);
+    font-size: 11px;
+    line-height: 17px;
+  }
+}
+
+.mod-rail-hint kbd {
+  margin-left: 4px;
+  padding: 0 5px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: transparent;
+  box-shadow: none;
+  color: inherit;
+  font: inherit;
+  font-size: 11px;
+  opacity: 0.85;
+}
+
+@media (min-width: 901px) and (prefers-reduced-motion: no-preference) {
+  .mod-shell.is-rail-ready {
+    transition: grid-template-columns 0.28s var(--da-ease);
+  }
+
+  .mod-rail-tip {
+    animation: mod-rail-tip-in 0.14s var(--da-ease);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mod-rail-toggle,
+  .mod-rail-toggle svg {
+    transition: none !important;
+  }
+}
+
+@keyframes mod-rail-tip-in {
+  from {
+    opacity: 0;
+    transform: translate(-4px, -50%);
+  }
+}
+
+/* ── Module page header (ModuleHeader.jsx) ──────────────────────────────────
+   Rows: crumbs · title block + action cluster · toolbar. Modes come from the
+   header's own width (data-size = wide | compact | phone), so the layout is
+   the same with the sidebar open, collapsed or hidden. Controls are 32px. */
+
+.mh {
+  --mh-gap: 8px;
+  --mh-h: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  margin-bottom: 18px;
+}
+
+/* Crumbs: one line, every item may shrink (the current one last). */
+.mh-crumbs ol {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--da-muted);
+  white-space: nowrap;
+}
+
+.mh-crumbs li {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  flex: 0 1 auto;
+}
+
+.mh-crumbs li.is-current {
+  flex-shrink: 0.4;
+}
+
+.mh-crumbs li.is-more {
+  flex: none;
+}
+
+.mh-crumbs__item {
+  min-width: 2.5em;
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--da-muted);
+}
+
+a.mh-crumbs__item:hover {
+  color: var(--da-primary);
+}
+
+.is-current .mh-crumbs__item {
+  color: var(--da-text);
+  font-weight: 600;
+}
+
+.mh-crumbs__sep {
+  flex: none;
+  margin: 0 7px;
+  color: var(--da-faint);
+}
+
+.mh-crumbs__more {
+  height: 22px;
+  padding: 0 7px;
+  border: 0;
+  border-radius: 6px;
+  background: var(--da-tint);
+  color: var(--da-muted);
+  font: inherit;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.mh-crumbs__more:hover {
+  color: var(--da-primary);
+}
+
+/* Title block (shrinks, ellipsis) and the action cluster (never wraps). */
+.mh-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 8px 20px;
+}
+
+.mh-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  min-height: 38px;
+  margin: 0;
+  font-size: clamp(22px, 2.2vw, 28px);
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+}
+
+.mh-title__icon {
+  display: inline-flex;
+  flex: none;
+}
+
+.mh-title__text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mh-title__extra {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+}
+
+/* Meta and lead span the whole width under the title and the actions. */
+.mh-meta {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  margin-top: -2px;
+}
+
+.mh-lead {
+  grid-column: 1 / -1;
+  max-width: 760px;
+  margin: -4px 0 0;
+  color: var(--da-muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.mh-actions {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: var(--mh-gap);
+  min-height: 38px;
+  white-space: nowrap;
+}
+
+.mh-actions .ant-btn,
+.mh-dock .ant-btn,
+.mh-toolbar .ant-btn:not(.ant-btn-sm) {
+  height: var(--mh-h);
+}
+
+.mh-actions .ant-btn-icon-only,
+.mh-toolbar .ant-btn-icon-only:not(.ant-btn-sm) {
+  width: var(--mh-h);
+}
+
+.mh-split {
+  flex: none;
+}
+
+.mh-split__arrow.ant-btn {
+  width: 30px;
+  padding-inline: 0;
+}
+
+.mh-split .ant-btn-primary + .ant-dropdown-trigger.ant-btn-primary,
+.mh-split .ant-btn-primary + .mh-split__arrow {
+  border-inline-start-color: color-mix(in srgb, #fff 35%, transparent);
+}
+
+.mh-tipwrap {
+  display: inline-flex;
+}
+
+.mh-btn__text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Toolbar: growing search on the left, sort / view on the right. A bar of its
+   own when it has something on the left; a plain row with only view tools. */
+.mh-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  min-height: 32px;
+}
+
+.mh-toolbar.has-start {
+  min-height: 42px;
+  padding: 4px;
+  border-radius: var(--da-radius);
+  border: 1px solid var(--da-hairline);
+  background: color-mix(in srgb, var(--da-surface) 72%, transparent);
+  box-shadow: var(--da-shadow-sm);
+}
+
+.mh-toolbar.has-start .mh-status:first-child {
+  padding-left: 8px;
+}
+
+.mh-filters {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.mh-toolbar__start {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.mh-toolbar__end {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  margin-left: auto;
+}
+
+.mh-search {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 1 380px;
+  min-width: 160px;
+}
+
+.mh-search .ant-input-search {
+  flex: 1;
+  min-width: 0;
+}
+
+.mh-status {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--da-muted);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mh-sort.ant-btn {
+  gap: 6px;
+  padding-inline: 10px;
+  color: var(--da-muted);
+}
+
+.mh-sort.ant-btn:hover {
+  color: var(--da-text);
+}
+
+.mh-sort .anticon {
+  font-size: 12px;
+}
+
+.mh-view.ant-segmented .ant-segmented-item-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  min-height: 26px;
+  padding: 0 8px;
+  font-size: 15px;
+}
+
+/* Selection replaces the search while items are selected. */
+.mh-selection {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  max-width: 100%;
+  height: var(--mh-h);
+  padding: 0 4px 0 12px;
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--da-primary) 10%, transparent);
+  animation: da-rise 0.25s var(--da-ease-out) backwards;
+}
+
+.mh-selection strong {
+  flex: none;
+  margin-right: 4px;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.mh-selection__actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.mh-selection .ant-btn {
+  flex: none;
+}
+
+.mh-selection__clear.ant-btn {
+  flex: none;
+  color: var(--da-muted);
+}
+
+/* Middle-truncated path chip: root … last folder. */
+.mh-path {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  max-width: min(520px, 100%);
+  height: 26px;
+  padding: 0 8px 0 10px;
+  border: 1px solid var(--da-hairline);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--da-text) 3%, transparent);
+  color: var(--da-muted);
+  font: inherit;
+  cursor: copy;
+  transition: color 0.15s var(--da-ease), border-color 0.15s var(--da-ease);
+}
+
+.mh-path:hover,
+.mh-path:focus-visible {
+  color: var(--da-text);
+  border-color: color-mix(in srgb, var(--c, var(--da-primary)) 45%, var(--da-hairline));
+}
+
+.mh-path code {
+  display: flex;
+  min-width: 0;
+  padding: 0;
+  background: none;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.mh-path__head {
+  min-width: 1.5em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mh-path__tail {
+  flex: none;
+}
+
+.mh-path__icon {
+  flex: none;
+  font-size: 12px;
+}
+
+.mh-path__tip {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  word-break: break-all;
+}
+
+.mh-path__tip em {
+  opacity: 0.7;
+  font-size: 12px;
+  font-style: normal;
+}
+
+/* Compact: tighter gaps. */
+.mh[data-size='compact'] .mh-main {
+  column-gap: 14px;
+}
+
+/* Phone: actions live in the bottom dock, the search is an icon. */
+.mh[data-size='phone'] {
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.mh[data-size='phone'] .mh-title {
+  min-height: 32px;
+  font-size: 22px;
+}
+
+.mh[data-size='phone'] .mh-crumbs__item {
+  max-width: 140px;
+}
+
+.mh[data-size='phone'] .mh-toolbar {
+  gap: 8px;
+}
+
+.mh[data-size='phone'] .mh-search {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.mh[data-size='phone'] .mh-path {
+  max-width: 100%;
+}
+
+.mh-dock {
+  position: fixed;
+  z-index: 40;
+  left: 12px;
+  right: 12px;
+  bottom: calc(12px + var(--safe-bottom, 0px));
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border-radius: 16px;
+  border: 1px solid var(--da-hairline);
+  background: color-mix(in srgb, var(--da-surface) 90%, transparent);
+  backdrop-filter: saturate(1.4) blur(12px);
+  box-shadow: var(--da-shadow-lg);
+  animation: da-rise 0.3s var(--da-ease-out) backwards;
+}
+
+.mh-dock .ant-btn {
+  height: 40px;
+}
+
+.mh-dock .ant-btn-icon-only {
+  width: 40px;
+  flex: none;
+}
+
+.mh-dock > .ant-btn-block,
+.mh-dock > .mh-split.is-block,
+.mh-dock > .mh-tipwrap.is-block {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.mh-tipwrap.is-block > .mh-split {
+  width: 100%;
+}
+
+.mh-split.is-block > .ant-btn:first-child {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.mh-dock .mh-split__arrow.ant-btn {
+  width: 40px;
+}
+
+/* Leave room for the dock: upload progress sits above it. */
+body:has(.mh-dock) .upload-panel {
+  bottom: calc(76px + var(--safe-bottom, 0px));
+}
+
+/* …and the end of the page scrolls clear of it (the dock is about 70px plus the safe area). */
+body:has(.mh-dock) .mod-shell__main {
+  padding-bottom: calc(112px + var(--safe-bottom, 0px));
+}
+
+.mh[data-size='phone'] .mh-toolbar.is-searching .mh-toolbar__start {
+  flex-wrap: wrap;
+  row-gap: 2px;
+}
+
+.mh[data-size='phone'] .mh-toolbar.is-searching .mh-status {
+  flex-basis: 100%;
+  padding: 0 8px 4px;
+}

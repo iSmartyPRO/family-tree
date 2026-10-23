@@ -1,0 +1,378 @@
+import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
+import {
+  BrowserRouter as Router,
+  Navigate,
+  Route,
+  Routes,
+  useLocation,
+  useParams,
+} from 'react-router-dom';
+import { App as AntApp, ConfigProvider, Spin } from 'antd';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { LocaleProvider, useLocale } from './context/LocaleContext';
+import { SettingsProvider, useSettings } from './context/SettingsContext';
+import FontLoader from './components/FontLoader';
+import { ThemeProvider, useThemeMode } from './context/ThemeContext';
+import { HelpProvider } from './help/HelpContext';
+import { TourProvider } from './tour/TourContext';
+// Guided tours of project modules (modules/<id>/tour.js).
+import './modules/shared/moduleTours';
+import { LEGACY_ADMIN_ROUTES, SETTINGS_ITEMS } from './admin/navigation';
+import { SETTINGS_PAGES } from './admin/settingsPages';
+import { loginUrl } from './lib/returnPath';
+import AppErrorBoundary, { RootErrorBoundary } from './components/AppErrorBoundary';
+import { getSetupStatus } from './services/api';
+import { SETTINGS_VIEW } from './lib/access';
+import { MODULE_REGISTRY } from './modules/registry';
+import UpdateBanner from './pwa/UpdateBanner';
+import Maintenance from './components/Maintenance';
+import AssistantSlot from './components/AssistantSlot';
+import RegionalSync from './components/RegionalSync';
+import { applyAppIcon } from './pwa/appIcon';
+
+// Every page loads on demand. The landing and sign-in pages are fetched at
+// once when the address is theirs (in parallel with the setup check), so they
+// do not wait an extra round trip; elsewhere their code is never loaded.
+const loadHome = () => import('./pages/Home');
+const loadLogin = () => import('./pages/Login');
+const Home = lazy(loadHome);
+const Login = lazy(loadLogin);
+if (typeof window !== 'undefined') {
+  const path = window.location.pathname;
+  if (path === '/') loadHome().catch(() => {});
+  else if (path.startsWith('/login')) loadLogin().catch(() => {});
+  // A deep link to a module (/app/dashboard…): its code starts loading now,
+  // alongside the setup/session checks, instead of after them.
+  else MODULE_REGISTRY.find((module) => path === module.path || path.startsWith(`${module.path}/`))?.App.preload?.();
+}
+
+const SetupWizard = lazy(() => import('./pages/SetupWizard'));
+const AdminLayout = lazy(() => import('./layouts/AdminLayout'));
+const SettingsLayout = lazy(() => import('./layouts/SettingsLayout'));
+const AccountLayout = lazy(() => import('./layouts/AccountLayout'));
+const AdminDashboard = lazy(() => import('./pages/admin/Dashboard'));
+const AdminUsers = lazy(() => import('./pages/admin/Users'));
+const AdminUserEdit = lazy(() => import('./pages/admin/UserEdit'));
+const AdminActivity = lazy(() => import('./pages/admin/Activity'));
+const AdminGroups = lazy(() => import('./pages/admin/Groups'));
+const AdminRoles = lazy(() => import('./pages/admin/Roles'));
+const ModuleDocs = lazy(() => import('./pages/admin/ModuleDocs'));
+const AuthCallback = lazy(() => import('./pages/AuthCallback'));
+const AppsPage = lazy(() => import('./pages/Apps'));
+const PublicShare = lazy(() => import('./modules/kb/PublicShare'));
+const PublicTree = lazy(() => import('./modules/family/PublicTree'));
+const InstallPage = lazy(() => import('./pwa/InstallPage'));
+const PublicLink = lazy(() => import('./modules/files/PublicLink'));
+const SettingsHome = lazy(() => import('./pages/admin/settings/SettingsHome'));
+const AccountProfile = lazy(() => import('./pages/account/Profile'));
+const AccountAppearance = lazy(() => import('./pages/account/Appearance'));
+const AccountSecurity = lazy(() => import('./pages/account/Security'));
+const AccountNotifications = lazy(() => import('./pages/account/Notifications'));
+const AccountConnections = lazy(() => import('./pages/account/Connections'));
+const ApiConsole = lazy(() => import('./developer/ApiConsole'));
+const ApiTokensPage = lazy(() => import('./developer/ApiTokensPage'));
+const Developers = lazy(() => import('./developer/Developers'));
+const HelpCenter = lazy(() => import('./help/HelpCenter'));
+
+function Screen() {
+  return (
+    <div className="boot-screen">
+      <Spin size="large" />
+    </div>
+  );
+}
+
+// Setup can only move forward, so once it reports "done" we stop asking.
+let setupDone = false;
+
+function SetupGate({ children }) {
+  const [state, setState] = useState(setupDone ? 'done' : 'loading');
+
+  useEffect(() => {
+    if (setupDone) return;
+    getSetupStatus()
+      .then((res) => {
+        const needs = Boolean(res.data?.needsSetup);
+        if (!needs) setupDone = true;
+        setState(needs ? 'needed' : 'done');
+      })
+      // A failed status check (network, 5xx) must not bounce a configured
+      // product into the wizard; let the page load and surface its own errors.
+      .catch(() => setState('done'));
+  }, []);
+
+  if (state === 'loading') return <Screen />;
+  if (state === 'needed') return <Navigate to="/setup" replace />;
+  return children;
+}
+
+function AccessGate({ children }) {
+  const { user, ready } = useAuth();
+  const location = useLocation();
+  const { settings, ready: settingsReady } = useSettings();
+
+  if (!ready || !settingsReady) return <Screen />;
+  if ((settings?.accessMode || 'closed') === 'closed' && !user) {
+    return <Navigate to={loginUrl(location)} replace />;
+  }
+  return children;
+}
+
+function AuthGate({ children }) {
+  const { user, ready } = useAuth();
+  const location = useLocation();
+  if (!ready) return <Screen />;
+  if (!user) return <Navigate to={loginUrl(location)} replace />;
+  return children;
+}
+
+function AdminGate({ children }) {
+  const { user, ready, can } = useAuth();
+  const location = useLocation();
+  if (!ready) return <Screen />;
+  if (!user) return <Navigate to={loginUrl(location)} replace />;
+  if (!can('console.access')) return <Navigate to="/account" replace />;
+  return children;
+}
+
+/** Hides a console page the user has no permission for. */
+function Allow({ any, children }) {
+  const { canAny } = useAuth();
+  return canAny(any) ? children : <Navigate to="/admin" replace />;
+}
+
+/** A module route: hidden (redirect to /apps) when the module is switched off. */
+function ModuleGate({ id, children }) {
+  const { settings, ready } = useSettings();
+  // Not loaded yet (or held back by an outage): wait, a deep link must survive.
+  if (!ready) return <Screen />;
+  // Settings failed to load for another reason: the module's own API still
+  // enforces whether it is on, so let the page try instead of bouncing to /apps.
+  if (!settings) return children;
+  if (!settings.modules?.[id]?.enabled) return <Navigate to="/apps" replace />;
+  return children;
+}
+
+/**
+ * "/" follows Settings → Site access → Home page: the landing page or any
+ * module (guests are sent to sign in first).
+ */
+function HomeRoute() {
+  const { settings } = useSettings();
+  const { user } = useAuth();
+  const location = useLocation();
+  const page = settings?.homePage || 'landing';
+  const module = page !== 'landing' && settings?.modules?.[page]?.enabled ? MODULE_REGISTRY.find((entry) => entry.id === page) : null;
+  if (!module) return <Home />;
+  if (!user) return <Navigate to={loginUrl({ ...location, pathname: module.path })} replace />;
+  return <Navigate to={module.path} replace />;
+}
+
+/** /admin/<old path> → new location, so bookmarks keep working. */
+function LegacyAdminRedirect() {
+  const params = useParams();
+  const rest = params['*'] || '';
+  const target = LEGACY_ADMIN_ROUTES[rest];
+  return <Navigate to={target ? `/admin/${target}` : '/admin'} replace />;
+}
+
+function ThemedRoutes() {
+  const location = useLocation();
+  const { antdConfig, mode } = useThemeMode();
+  const { antdLocale, locale } = useLocale();
+  const { settings } = useSettings();
+  // antd spaces out two-character CJK button labels ("登 录"); Chinese reads them unspaced.
+  const buttonConfig = useMemo(() => ({ autoInsertSpace: locale !== 'zh' }), [locale]);
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = mode;
+  }, [mode]);
+
+  // Installed app (PWA): status-bar colour follows the theme; custom icon and name on iOS.
+  useEffect(() => {
+    const setMeta = (selector, attr, value) => {
+      const node = document.head.querySelector(selector);
+      if (node && value) node.setAttribute(attr, value);
+    };
+    setMeta('meta[name="theme-color"]', 'content', mode === 'dark' ? '#0B1220' : '#F8FAFC');
+    setMeta('meta[name="apple-mobile-web-app-status-bar-style"]', 'content', mode === 'dark' ? 'black-translucent' : 'default');
+    setMeta('meta[name="apple-mobile-web-app-title"]', 'content', settings?.appearance?.shortName || settings?.appName);
+  }, [mode, settings]);
+
+  // Tab icon, touch icon and manifest follow "App icon" at once (also right
+  // after an admin uploads one). Until settings arrive index.html's
+  // /api/pwa/icon already points at the configured icon.
+  const appIconUrl = settings?.appearance?.appIconUrl;
+  useEffect(() => {
+    if (settings) applyAppIcon(appIconUrl);
+  }, [settings, appIconUrl]);
+
+  useEffect(() => {
+    if (settings?.appName) document.title = settings.appName;
+  }, [settings?.appName]);
+
+  return (
+    <ConfigProvider theme={antdConfig} locale={antdLocale} button={buttonConfig}>
+      <AntApp className="ant-app-root">
+        <AppErrorBoundary resetKey={location.pathname}>
+        <HelpProvider>
+        <RegionalSync>
+        <TourProvider>
+        <Suspense fallback={<Screen />}>
+          <Routes>
+            <Route path="/setup" element={<SetupWizard />} />
+            <Route path="/auth/magic" element={<AuthCallback kind="magic" />} />
+            <Route path="/auth/telegram" element={<AuthCallback kind="telegram" />} />
+            <Route path="/s/:slug/*" element={<PublicShare />} />
+            <Route path="/t/:token" element={<PublicTree />} />
+            <Route path="/l/:token" element={<PublicLink />} />
+            <Route
+              path="/install"
+              element={
+                <SetupGate>
+                  <InstallPage />
+                </SetupGate>
+              }
+            />
+            <Route
+              path="/apps"
+              element={
+                <SetupGate>
+                  <AuthGate>
+                    <AppsPage />
+                  </AuthGate>
+                </SetupGate>
+              }
+            />
+            {MODULE_REGISTRY.map((module) => (
+              <Route
+                key={module.id}
+                path={`${module.path}/*`}
+                element={
+                  <SetupGate>
+                    <AuthGate>
+                      <ModuleGate id={module.id}>
+                        <module.App />
+                      </ModuleGate>
+                    </AuthGate>
+                  </SetupGate>
+                }
+              />
+            ))}
+            <Route
+              path="/help/:id?"
+              element={
+                <SetupGate>
+                  <AuthGate>
+                    <HelpCenter />
+                  </AuthGate>
+                </SetupGate>
+              }
+            />
+            <Route
+              path="/developers"
+              element={
+                <SetupGate>
+                  <Developers />
+                </SetupGate>
+              }
+            />
+            <Route
+              path="/login"
+              element={
+                <SetupGate>
+                  <Login />
+                </SetupGate>
+              }
+            />
+            <Route
+              path="/"
+              element={
+                <SetupGate>
+                  <AccessGate>
+                    <HomeRoute />
+                  </AccessGate>
+                </SetupGate>
+              }
+            />
+            <Route
+              path="/admin"
+              element={
+                <SetupGate>
+                  <AdminGate>
+                    <AdminLayout />
+                  </AdminGate>
+                </SetupGate>
+              }
+            >
+              <Route index element={<AdminDashboard />} />
+              <Route path="users" element={<Allow any={['users.view']}><AdminUsers /></Allow>} />
+              <Route path="users/:id" element={<Allow any={['users.view']}><AdminUserEdit /></Allow>} />
+              <Route path="groups" element={<Allow any={['users.view']}><AdminGroups /></Allow>} />
+              <Route path="roles" element={<Allow any={['users.view']}><AdminRoles /></Allow>} />
+              <Route path="activity" element={<Allow any={['activity.view']}><AdminActivity /></Allow>} />
+              <Route path="api" element={<Allow any={['api.admin']}><ApiConsole /></Allow>} />
+              <Route path="modules" element={<Navigate to="/admin/settings/modules" replace />} />
+              <Route path="modules/:id/docs" element={<Allow any={SETTINGS_VIEW}><ModuleDocs /></Allow>} />
+              <Route path="settings" element={<Allow any={SETTINGS_VIEW}><SettingsLayout /></Allow>}>
+                <Route index element={<SettingsHome />} />
+                {SETTINGS_ITEMS.map((item) => {
+                  const Page = SETTINGS_PAGES[item.id];
+                  return Page ? (
+                    <Route key={item.id} path={item.id} element={<Page key={item.id} itemId={item.id} />} />
+                  ) : null;
+                })}
+                <Route path="*" element={<Navigate to="/admin/settings" replace />} />
+              </Route>
+              <Route path="*" element={<LegacyAdminRedirect />} />
+            </Route>
+            <Route
+              path="/account"
+              element={
+                <SetupGate>
+                  <AuthGate>
+                    <AccountLayout />
+                  </AuthGate>
+                </SetupGate>
+              }
+            >
+              <Route index element={<AccountProfile />} />
+              <Route path="appearance" element={<AccountAppearance />} />
+              <Route path="security" element={<AccountSecurity />} />
+              <Route path="notifications" element={<AccountNotifications />} />
+              <Route path="connections" element={<AccountConnections />} />
+              <Route path="api" element={<ApiTokensPage />} />
+            </Route>
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Suspense>
+        <AssistantSlot />
+        <UpdateBanner />
+        <Maintenance />
+        </TourProvider>
+        </RegionalSync>
+        </HelpProvider>
+        </AppErrorBoundary>
+      </AntApp>
+    </ConfigProvider>
+  );
+}
+
+export default function App() {
+  return (
+    <RootErrorBoundary>
+    <SettingsProvider>
+      <AuthProvider>
+        <LocaleProvider>
+          <ThemeProvider>
+            <FontLoader />
+            <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+              <ThemedRoutes />
+            </Router>
+          </ThemeProvider>
+        </LocaleProvider>
+      </AuthProvider>
+    </SettingsProvider>
+    </RootErrorBoundary>
+  );
+}

@@ -1,0 +1,18 @@
+# Dependencies and build output are produced inside the image (npm ci, vite build).
+**/node_modules
+**/dist
+**/build
+**/npm-debug.log
+**/*.log
+.git
+**/.gitignore
+# Secrets and runtime data never go into the build context.
+**/.env
+**/.env.*
+data
+**/uploads
+.DS_Store
+**/.DS_Store
+docs
+.github
+*.md
