@@ -192,7 +192,7 @@ export async function unlockShare(token, password) {
 }
 
 export async function publicTree(row) {
-  const tree = (await query(`SELECT name, description, home_person_id FROM family_trees WHERE id = $1`, [row.tree_id])).rows[0];
+  const tree = (await query(`SELECT name, description, home_person_id, show_unknown_parents FROM family_trees WHERE id = $1`, [row.tree_id])).rows[0];
   const { graph, view } = await graphOfView(row.tree_id, row.view_id, `/api/t/${row.token}`);
   // Visitors see the family, not how to reach people: contacts stay private.
   for (const person of graph.persons) person.contacts = {};
@@ -201,6 +201,7 @@ export async function publicTree(row) {
       name: row.title || view?.name || tree.name,
       description: view ? view.description : tree.description || '',
       homePersonId: view?.filter.focus || tree.home_person_id || null,
+      showUnknownParents: tree.show_unknown_parents !== false,
     },
     share: {
       access: ACCESS.includes(row.access) ? row.access : 'view',

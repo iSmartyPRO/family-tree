@@ -64,6 +64,7 @@ function treeShape(row, level) {
     name: row.name,
     description: row.description || '',
     homePersonId: row.home_person_id || null,
+    showUnknownParents: row.show_unknown_parents !== false,
     personCount: Number(row.person_count || 0),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -139,8 +140,8 @@ export async function createTree(ctx, input) {
   const tree = cleanTree(input);
   return withTransaction(async (client) => {
     const { rows } = await client.query(
-      `INSERT INTO family_trees (name, description, created_by, updated_by) VALUES ($1, $2, $3, $3) RETURNING id`,
-      [tree.name, tree.description, ctx.userId]
+      `INSERT INTO family_trees (name, description, show_unknown_parents, created_by, updated_by) VALUES ($1, $2, $4, $3, $3) RETURNING id`,
+      [tree.name, tree.description, ctx.userId, tree.showUnknownParents]
     );
     const id = rows[0].id;
     await writeAcl(client, ACL, id, [{ subjectType: 'user', subjectId: ctx.userId, level: 'manage' }], null);
@@ -161,8 +162,8 @@ export async function updateTree(ctx, treeId, input) {
     }
   }
   await query(
-    `UPDATE family_trees SET name = $2, description = $3, home_person_id = $4, updated_by = $5, updated_at = NOW() WHERE id = $1`,
-    [treeId, tree.name, tree.description, home, ctx.userId]
+    `UPDATE family_trees SET name = $2, description = $3, home_person_id = $4, show_unknown_parents = $6, updated_by = $5, updated_at = NOW() WHERE id = $1`,
+    [treeId, tree.name, tree.description, home, ctx.userId, tree.showUnknownParents]
   );
 }
 
@@ -619,7 +620,7 @@ export async function exportTree(ctx, treeId) {
   return {
     format: 'family-tree-v1',
     exportedAt: new Date().toISOString(),
-    tree: { name: tree.name, description: tree.description, homePersonId: tree.homePersonId },
+    tree: { name: tree.name, description: tree.description, homePersonId: tree.homePersonId, showUnknownParents: tree.showUnknownParents },
     persons: persons.map(({ photoUrl, updatedAt, ...person }) => ({ ...person, hasPhoto: Boolean(photoUrl) })),
     parents: parents.map(({ id, ...link }) => link),
     unions: unions.map(({ id, ...union }) => union),

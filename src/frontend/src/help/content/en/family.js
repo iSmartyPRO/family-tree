@@ -84,7 +84,9 @@ The same actions are in the side panel: **Add relative**. To link people who are
 - a dotted couple line means two people are parents of the same child but no union is recorded;
 - a dashed line means the couple divorced or separated.
 
-When both partners come from families in the tree, the couple stays with one of them, and a longer line leads to the other’s parents.`,
+When both partners come from families in the tree, the couple stays with one of them, and a longer line leads to the other’s parents.
+
+Where the second parent is not in the tree, a «Mother not known» / «Father not known» card stands beside the first one. To hide these cards and their couple lines (for example, many forefathers whose wives are unknown), turn off **⋯ → Name and settings… → Show unknown parents**.`,
     },
     {
       id: "timeline",

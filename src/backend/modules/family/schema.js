@@ -33,6 +33,8 @@ export async function ensureFamilySchema() {
     )
   `);
   await ensureAclTable('family_tree_acl', 'family_trees');
+  // Draw a «not known» card for a missing second parent (off: children hang from one parent).
+  await query(`ALTER TABLE family_trees ADD COLUMN IF NOT EXISTS show_unknown_parents BOOLEAN NOT NULL DEFAULT TRUE`);
 
   await query(`
     CREATE TABLE IF NOT EXISTS family_persons (

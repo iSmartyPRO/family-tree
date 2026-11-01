@@ -199,7 +199,8 @@ const TreeCanvas = forwardRef(function TreeCanvas({ data, selectedId, onSelect, 
   const frame = useRef(0);
   const fitted = useRef(false);
 
-  const layout = useMemo(() => layoutTree(data.persons, data.parents, data.unions), [data.persons, data.parents, data.unions]);
+  const showUnknown = data.tree?.showUnknownParents !== false;
+  const layout = useMemo(() => layoutTree(data.persons, data.parents, data.unions, { showUnknown }), [data.persons, data.parents, data.unions, showUnknown]);
   const nodeOf = useMemo(() => new Map(layout.nodes.filter((n) => n.personId !== null && !n.copy).map((n) => [n.personId, n])), [layout]);
   const worldW = layout.width + PAD * 2;
   const worldH = layout.height + PAD * 2;

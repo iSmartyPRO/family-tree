@@ -18,7 +18,7 @@ export function TreeDialog({ open, tree, onClose, onSaved }) {
   const [form] = Form.useForm();
   const [saving, setSaving] = useState(false);
   useEffect(() => {
-    if (open) form.setFieldsValue({ name: tree?.name || '', description: tree?.description || '' });
+    if (open) form.setFieldsValue({ name: tree?.name || '', description: tree?.description || '', showUnknownParents: tree?.showUnknownParents !== false });
   }, [open, tree, form]);
   const submit = async () => {
     const values = await form.validateFields();
@@ -50,6 +50,9 @@ export function TreeDialog({ open, tree, onClose, onSaved }) {
         </Form.Item>
         <Form.Item name="description" label={t('family.tree.description')}>
           <Input.TextArea autoSize={{ minRows: 2, maxRows: 6 }} maxLength={2000} />
+        </Form.Item>
+        <Form.Item name="showUnknownParents" valuePropName="checked" extra={t('family.tree.showUnknownParentsHint')}>
+          <Checkbox>{t('family.tree.showUnknownParents')}</Checkbox>
         </Form.Item>
         <button type="submit" hidden aria-hidden="true" />
       </Form>

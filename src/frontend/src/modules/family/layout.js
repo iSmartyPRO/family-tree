@@ -240,7 +240,8 @@ function buildUnits(persons, gen, graph, byId, anchored = () => false) {
  * hangs under the person's parents; each next family is a copy one row
  * lower, exactly under the previous card and joined to it by a «same person»
  * line, so a person with three marriages forms a column, not a long row. A missing
- * second parent is a placeholder card.
+ * second parent is a placeholder card — unless `showUnknown` is off: then
+ * those children hang from the one known parent and no card is drawn.
  */
 let syntheticId = 0;
 const nextId = () => -(++syntheticId);
@@ -251,7 +252,7 @@ export function familiesOf(persons, parents, unions, personId) {
   return expanded.groupsOf.get(personId) || [];
 }
 
-export function expandFamilies(persons, parents, unions) {
+export function expandFamilies(persons, parents, unions, { showUnknown = true } = {}) {
   const real = buildFamilies(persons, parents, unions);
   const byId = new Map(persons.map((p) => [p.id, p]));
   const yearOf = (v) => (v ? Number(String(v).slice(0, 4)) : null);
@@ -317,7 +318,7 @@ export function expandFamilies(persons, parents, unions) {
       }
       orderOf.set(id, index);
       cardFor.set(cardKey(person.id, g.partner), id);
-      if (g.partner === null) {
+      if (g.partner === null && showUnknown) {
         const ph = nextId();
         placeholders.add(ph);
         realOf.set(ph, null);
@@ -399,8 +400,8 @@ function clearance(placed, next, gap) {
 }
 
 /** The full layout: nodes, couple lines, family connectors and bounds. */
-export function layoutTree(realPersons, realParents, realUnions) {
-  const expanded = expandFamilies(realPersons, realParents, realUnions);
+export function layoutTree(realPersons, realParents, realUnions, options = {}) {
+  const expanded = expandFamilies(realPersons, realParents, realUnions, options);
   const { persons, parents, unions } = expanded;
   const byId = new Map(persons.map((p) => [p.id, p]));
   const realById = new Map(realPersons.map((p) => [p.id, p]));

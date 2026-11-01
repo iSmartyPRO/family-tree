@@ -4,6 +4,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/); versions fol
 
 ## [Unreleased]
 
+### Added
+
+- Family: tree setting «Show unknown parents» (⋯ → Name and settings…). Off — no «Mother/Father not known» cards and couple lines; children hang from the one known parent.
+
 ## [1.6.0] — 2026-10-19
 
 First public release of iApp-Skeleton — a production-ready starter for web apps.

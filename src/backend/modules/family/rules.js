@@ -121,7 +121,8 @@ export function cleanTree(input = {}, current = null) {
   const name = text(input.name === undefined ? current?.name : input.name, 120);
   if (!name) throw httpError(400, 'Enter a name for the tree', 'NAME_REQUIRED');
   const description = String((input.description === undefined ? current?.description : input.description) ?? '').trim().slice(0, 2000);
-  return { name, description };
+  const showUnknownParents = input.showUnknownParents === undefined ? current?.show_unknown_parents !== false : input.showUnknownParents !== false;
+  return { name, description, showUnknownParents };
 }
 
 /** child → [parents] map from rows of family_parents. */
