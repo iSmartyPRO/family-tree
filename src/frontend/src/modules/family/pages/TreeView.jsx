@@ -3,6 +3,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { App, AutoComplete, Badge, Button, Dropdown, Grid, Input, Popover, Result, Segmented, Select, Spin, Tooltip } from 'antd';
 import {
   ApartmentOutlined,
+  CalendarOutlined,
   CopyOutlined,
   HistoryOutlined,
   DownOutlined,
@@ -31,6 +32,7 @@ import { displayName, lifeYears, searchText, shortName } from '../format';
 import { indexTree, kinOf } from '../kin';
 import { useFamily } from '../FamilyContext';
 import TreeCanvas, { Avatar } from '../components/TreeCanvas';
+import CalendarView from '../components/CalendarView';
 import TimelineView from '../components/TimelineView';
 import PeopleList from '../components/PeopleList';
 import ViewBuilder from '../components/ViewBuilder';
@@ -98,7 +100,7 @@ export default function TreeView() {
   const canvas = useRef(null);
 
   const selectedId = Number(params.get('p')) || null;
-  const view = ['timeline', 'list'].includes(params.get('v')) ? params.get('v') : 'tree';
+  const view = ['timeline', 'list', 'calendar'].includes(params.get('v')) ? params.get('v') : 'tree';
   const viewParam = params.get('view');
   const activeViewId = viewParam === 'custom' ? 'custom' : Number(viewParam) || null;
   const setParam = useCallback(
@@ -380,6 +382,7 @@ export default function TreeView() {
                 { value: 'tree', icon: <ApartmentOutlined />, label: t('family.view.tree') },
                 { value: 'timeline', icon: <BarsOutlined />, label: t('family.view.timeline') },
                 { value: 'list', icon: <UnorderedListOutlined />, label: t('family.view.list') },
+                { value: 'calendar', icon: <CalendarOutlined />, label: t('family.view.calendar') },
               ]}
             />
           )
@@ -423,7 +426,7 @@ export default function TreeView() {
                   <Button icon={<SettingOutlined />} onClick={() => setBuilder({ view: null })} aria-label={t('family.views.edit')} />
                 </Tooltip>
               )}
-              {view !== 'list' && (
+              {!['list', 'calendar'].includes(view) && (
             <AutoComplete
               className="fam-search"
               options={options}
@@ -444,7 +447,9 @@ export default function TreeView() {
       />
 
       <div className={`fam-body${selectedId ? ' has-panel' : ''}`}>
-        {data.persons.length && view === 'list' ? (
+        {data.persons.length && view === 'calendar' ? (
+          <CalendarView data={shown} selectedId={selectedId} onSelect={select} relationTo={relationTo} title={activeView ? activeView.name : tree.name} />
+        ) : data.persons.length && view === 'list' ? (
           <PeopleList data={shown} selectedId={selectedId} onSelect={select} onOpen={(personId) => canEdit && setEditor({ person: index.persons.get(personId) })} />
         ) : data.persons.length && view === 'timeline' ? (
           <TimelineView data={shown} selectedId={selectedId} onSelect={select} onOpen={(personId) => canEdit && setEditor({ person: index.persons.get(personId) })} />

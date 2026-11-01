@@ -16,6 +16,11 @@ export default {
       text: "Lifelines on one axis of years, grouped by couples in the order of the wedding or first child.",
     },
     {
+      icon: "🎂",
+      title: "Calendar",
+      text: "Birthdays and memorial days every year, with a countdown.",
+    },
+    {
       icon: "➕",
       title: "Quick adding",
       text: "Select a person and use the «+» buttons around the card: parent, child, partner, sibling.",
@@ -96,6 +101,18 @@ Where the second parent is not in the tree, a «Mother not known» / «Father no
 Couples go in the order of the wedding; when its date is unknown, of their first shared child. The couple mark (ring) stands at the wedding year or, dotted, at the first child’s birth. A child’s branch drops from the parent’s bar at the year the child was born, so you can see how old the parents were.
 
 Unknown birth years are estimated from relatives (about a generation apart) and shown faded.`,
+    },
+    {
+      id: "calendar",
+      title: "Calendar",
+      body: `The **Calendar** switch gathers family dates: birthdays and memorial days (anniversaries of a passing).
+
+- **Coming up** — cards with a countdown «Today», «Tomorrow», «In 5 days»: the age turned or the years in memory;
+- the strip of **months** shows how many dates each has, and the month grid shows faces on their days (swipe between months on a phone);
+- below — the month's dates day by day with how each person is related to you; tap someone to open their card;
+- **Add to calendar** downloads an .ics file for Google, Apple or Outlook: every date repeats yearly, with a reminder the evening before.
+
+Only full dates (day, month and year) are in the calendar. People born on 29 February are marked on the 28th in other years. The calendar follows the chosen view, such as «Father's side».`,
     },
     {
       id: "person",

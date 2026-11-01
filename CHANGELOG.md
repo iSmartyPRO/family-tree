@@ -6,6 +6,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/); versions fol
 
 ### Added
 
+- Family: Calendar view — birthdays and memorial days with a countdown, a month grid with faces, the year as a strip of months, the month's dates day by day, and an .ics export (yearly, reminder the evening before). Also on public links.
 - Family: tree setting «Show unknown parents» (⋯ → Name and settings…). Off — no «Mother/Father not known» cards and couple lines; children hang from the one known parent.
 
 ### Fixed

@@ -10,6 +10,9 @@
   --fam-couple: color-mix(in srgb, var(--fam-female) 70%, var(--da-primary));
   --fam-hot: var(--da-primary);
   --fam-grid: color-mix(in srgb, var(--da-text) 7%, transparent);
+  --fam-birth: #e8912d;
+  --fam-birth-2: #e0457b;
+  --fam-memory: #7c74b8;
 }
 :root[data-theme='dark'] {
   --fam-male: #6ea8ff;
@@ -17,6 +20,9 @@
   --fam-line: color-mix(in srgb, var(--da-text) 42%, transparent);
   --fam-hot: color-mix(in srgb, var(--da-primary) 55%, white);
   --fam-grid: color-mix(in srgb, var(--da-text) 6%, transparent);
+  --fam-birth: #ffb057;
+  --fam-birth-2: #ff7aa8;
+  --fam-memory: #a9a2e6;
 }
 
 /* The module takes exactly the screen under the top bar: only its inner
@@ -2932,5 +2938,691 @@ a.fam-contact:hover {
   .fam-pv__img,
   .fam-pv__backdrop {
     transition: none;
+  }
+}
+
+/* ── Calendar: birthdays and memorial days ── */
+
+.fam-cal {
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+  scrollbar-width: thin;
+  background:
+    radial-gradient(1200px 380px at 12% -120px, color-mix(in srgb, var(--fam-birth) 10%, transparent), transparent 70%),
+    radial-gradient(900px 340px at 100% -80px, color-mix(in srgb, var(--fam-memory) 12%, transparent), transparent 70%),
+    var(--da-bg);
+}
+.fam-cal__inner {
+  width: min(1180px, 100%);
+  margin: 0 auto;
+  padding: 18px 20px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.fam-cal h3 {
+  margin: 0;
+  font-family: var(--da-font-heading);
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--da-text);
+}
+
+/* Next dates */
+.fam-cal__soon-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.fam-cal__tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.fam-cal__tools .ant-segmented-item-icon svg {
+  vertical-align: -0.125em;
+}
+.fam-cal__rail {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding: 4px 2px 12px;
+  margin: 0 -2px;
+  scroll-snap-type: x proximity;
+  scrollbar-width: thin;
+}
+.fam-cal__soon-card {
+  position: relative;
+  flex: none;
+  width: 168px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 14px 12px 14px;
+  border: 1px solid var(--da-hairline);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--da-surface) 88%, transparent);
+  backdrop-filter: blur(8px);
+  box-shadow: var(--da-shadow-sm);
+  color: var(--da-text);
+  font: inherit;
+  text-align: center;
+  cursor: pointer;
+  scroll-snap-align: start;
+  transition: transform 0.2s var(--da-ease), box-shadow 0.2s var(--da-ease), border-color 0.2s var(--da-ease);
+}
+.fam-cal__soon-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 54px;
+  border-radius: 18px 18px 0 0;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--fam-birth) 14%, transparent), transparent);
+  pointer-events: none;
+}
+.fam-cal__soon-card--death::before {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--fam-memory) 16%, transparent), transparent);
+}
+.fam-cal__soon-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--da-shadow);
+  border-color: var(--da-border);
+}
+.fam-cal__soon-card.is-selected {
+  border-color: var(--da-primary);
+}
+.fam-cal__soon-card.is-today {
+  border-color: color-mix(in srgb, var(--fam-birth) 60%, transparent);
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--fam-birth) 18%, transparent),
+    var(--da-shadow);
+}
+.fam-cal__soon-card--death.is-today {
+  border-color: color-mix(in srgb, var(--fam-memory) 60%, transparent);
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--fam-memory) 18%, transparent),
+    var(--da-shadow);
+}
+.fam-cal__when {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 9px;
+  margin-bottom: 6px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: color-mix(in srgb, var(--fam-birth) 85%, var(--da-text));
+  background: color-mix(in srgb, var(--fam-birth) 14%, var(--da-surface));
+}
+.fam-cal__soon-card--death .fam-cal__when {
+  color: color-mix(in srgb, var(--fam-memory) 85%, var(--da-text));
+  background: color-mix(in srgb, var(--fam-memory) 15%, var(--da-surface));
+}
+.fam-cal__soon-card.is-today .fam-cal__when {
+  color: var(--da-surface);
+  background: linear-gradient(120deg, var(--fam-birth), var(--fam-birth-2));
+}
+.fam-cal__soon-card--death.is-today .fam-cal__when {
+  background: var(--fam-memory);
+}
+.fam-cal__soon-name {
+  margin-top: 6px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 700;
+  font-size: 14.5px;
+}
+.fam-cal__soon-what {
+  font-size: 13px;
+  color: var(--da-text);
+  opacity: 0.85;
+}
+.fam-cal__soon-date {
+  font-size: 12px;
+  color: var(--da-muted);
+}
+
+/* Avatar ring: warm gradient for birthdays, quiet lavender for memory */
+.fam-cal__ring {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  padding: 3px;
+  border-radius: 50%;
+  background: conic-gradient(from 210deg, var(--fam-birth), var(--fam-birth-2), var(--fam-birth));
+}
+.fam-cal__ring--death {
+  background: linear-gradient(160deg, color-mix(in srgb, var(--fam-memory) 80%, white), var(--fam-memory));
+}
+.fam-cal__ring .fam-avatar {
+  box-shadow: 0 0 0 2px var(--da-surface);
+}
+.fam-cal__ring--death .fam-avatar {
+  filter: grayscale(0.7);
+}
+.fam-cal__ring--small {
+  padding: 2px;
+}
+
+/* Month + agenda */
+.fam-cal__main {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+.fam-cal__month,
+.fam-cal__agenda {
+  border: 1px solid var(--da-hairline);
+  border-radius: 20px;
+  background: var(--da-surface);
+  box-shadow: var(--da-shadow-sm);
+}
+.fam-cal__month {
+  padding: 14px 14px 12px;
+  position: sticky;
+  top: 0;
+}
+.fam-cal__nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+.fam-cal__title {
+  flex: 1;
+  text-align: center;
+  font-size: 18px !important;
+}
+.fam-cal__today-btn {
+  margin-left: 6px;
+  border-radius: 999px;
+}
+
+.fam-cal__strip {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(46px, 1fr));
+  gap: 4px;
+  overflow-x: auto;
+  padding-bottom: 10px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--da-hairline);
+  scrollbar-width: none;
+}
+.fam-cal__strip::-webkit-scrollbar {
+  display: none;
+}
+.fam-cal__strip-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 6px 2px 5px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--da-muted);
+  font: inherit;
+  cursor: pointer;
+  transition: background 0.15s var(--da-ease), color 0.15s var(--da-ease);
+}
+.fam-cal__strip-item:hover {
+  background: var(--da-tint);
+  color: var(--da-text);
+}
+.fam-cal__strip-item.is-now .fam-cal__strip-name {
+  color: var(--da-primary);
+}
+.fam-cal__strip-item.is-current {
+  background: var(--da-tint-strong);
+  color: var(--da-text);
+}
+.fam-cal__strip-name {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+.fam-cal__strip-dots {
+  display: flex;
+  gap: 3px;
+  min-height: 16px;
+}
+.fam-cal__strip-dots i {
+  font-style: normal;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 16px;
+  color: var(--da-surface);
+}
+.fam-cal__strip-dots .is-birth {
+  background: linear-gradient(120deg, var(--fam-birth), var(--fam-birth-2));
+}
+.fam-cal__strip-dots .is-death {
+  background: var(--fam-memory);
+}
+.fam-cal__strip-dots .is-none {
+  color: var(--da-faint);
+  min-width: 0;
+}
+
+.fam-cal__grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+  touch-action: pan-y;
+}
+.fam-cal__wd {
+  padding: 2px 0 6px;
+  text-align: center;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--da-faint);
+}
+.fam-cal__cell {
+  position: relative;
+  min-height: 72px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 4px;
+  padding: 7px 2px 6px;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--da-tint) 55%, transparent);
+  color: var(--da-text);
+  font: inherit;
+  cursor: pointer;
+  transition: background 0.15s var(--da-ease), border-color 0.15s var(--da-ease), transform 0.15s var(--da-ease);
+}
+.fam-cal__cell.is-out {
+  background: transparent;
+  cursor: default;
+}
+.fam-cal__cell:not(.is-out):hover {
+  background: var(--da-tint-strong);
+}
+.fam-cal__cell.has-birth {
+  background: linear-gradient(160deg, color-mix(in srgb, var(--fam-birth) 13%, var(--da-surface)), color-mix(in srgb, var(--fam-birth-2) 8%, var(--da-surface)));
+}
+.fam-cal__cell.only-death {
+  background: color-mix(in srgb, var(--fam-memory) 11%, var(--da-surface));
+}
+.fam-cal__cell.is-picked {
+  border-color: var(--da-primary);
+}
+.fam-cal__num {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  font-size: 13.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.fam-cal__cell:not(.has-events) .fam-cal__num {
+  color: var(--da-muted);
+  font-weight: 500;
+}
+.fam-cal__cell.is-today .fam-cal__num {
+  color: var(--da-surface);
+  background: var(--da-primary);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--da-primary) 22%, transparent);
+}
+.fam-cal__faces {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.fam-cal__face {
+  display: inline-grid;
+  padding: 1.5px;
+  border-radius: 50%;
+  background: linear-gradient(140deg, var(--fam-birth), var(--fam-birth-2));
+}
+.fam-cal__face + .fam-cal__face,
+.fam-cal__face + .fam-cal__more {
+  margin-left: -7px;
+}
+.fam-cal__face--death {
+  background: var(--fam-memory);
+}
+.fam-cal__face--death .fam-avatar {
+  filter: grayscale(0.7);
+}
+.fam-cal__face .fam-avatar {
+  box-shadow: 0 0 0 1.5px var(--da-surface);
+}
+.fam-cal__more {
+  display: grid;
+  place-items: center;
+  height: 25px;
+  min-width: 25px;
+  padding: 0 4px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--da-text);
+  background: var(--da-tint-strong);
+  box-shadow: 0 0 0 1.5px var(--da-surface);
+}
+.fam-cal__legend {
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+  margin-top: 12px;
+  font-size: 12px;
+  color: var(--da-muted);
+}
+.fam-cal__legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.fam-cal__legend-item.is-birth svg {
+  color: var(--fam-birth);
+}
+.fam-cal__legend-item.is-death svg {
+  color: var(--fam-memory);
+}
+
+/* Agenda */
+.fam-cal__agenda {
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+}
+.fam-cal__day {
+  position: relative;
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr);
+  gap: 10px;
+  padding: 10px 8px;
+  border-radius: 16px;
+  transition: background 0.2s var(--da-ease);
+  scroll-margin: 12px;
+}
+.fam-cal__day + .fam-cal__day::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 74px;
+  right: 8px;
+  height: 1px;
+  background: var(--da-hairline);
+}
+.fam-cal__day.is-picked::before,
+.fam-cal__day.is-picked + .fam-cal__day::before {
+  display: none;
+}
+.fam-cal__day.is-picked {
+  background: var(--da-tint);
+}
+.fam-cal__day.is-past {
+  opacity: 0.62;
+}
+.fam-cal__badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 56px;
+  border-radius: 14px;
+  background: var(--da-tint-strong);
+}
+.fam-cal__day.is-today .fam-cal__badge {
+  color: var(--da-surface);
+  background: linear-gradient(140deg, var(--da-primary), color-mix(in srgb, var(--da-primary) 60%, var(--fam-birth-2)));
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--da-primary) 30%, transparent);
+}
+.fam-cal__badge-num {
+  font-family: var(--da-font-heading);
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.fam-cal__badge-wd {
+  margin-top: 3px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.75;
+}
+.fam-cal__events {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.fam-cal__countdown {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--da-primary);
+}
+.fam-cal__event {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 6px 8px 6px 4px;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  background: transparent;
+  color: var(--da-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s var(--da-ease), border-color 0.15s var(--da-ease);
+}
+.fam-cal__event:hover {
+  background: var(--da-tint);
+}
+.fam-cal__event.is-selected {
+  border-color: var(--da-primary);
+  background: var(--da-tint);
+}
+.fam-cal__event-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.fam-cal__event-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 650;
+  font-size: 14.5px;
+}
+.fam-cal__event-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 8px;
+  font-size: 12.5px;
+  color: var(--da-muted);
+}
+.fam-cal__relation {
+  color: var(--da-text);
+  opacity: 0.8;
+}
+.fam-cal__year {
+  font-variant-numeric: tabular-nums;
+  color: var(--da-faint);
+}
+.fam-cal__type {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  font-size: 15px;
+  color: color-mix(in srgb, var(--fam-birth) 85%, var(--da-text));
+  background: color-mix(in srgb, var(--fam-birth) 14%, var(--da-surface));
+}
+.fam-cal__type--death {
+  color: color-mix(in srgb, var(--fam-memory) 85%, var(--da-text));
+  background: color-mix(in srgb, var(--fam-memory) 15%, var(--da-surface));
+}
+.fam-cal__empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 26px 16px;
+  border: 1px dashed var(--da-border);
+  border-radius: 18px;
+  color: var(--da-muted);
+  font-size: 13.5px;
+  text-align: center;
+}
+.fam-cal__empty--month {
+  border: 0;
+  flex-direction: column;
+  padding: 40px 16px;
+}
+.fam-cal__empty--month .anticon {
+  font-size: 28px;
+  color: var(--da-faint);
+}
+.fam-cal__undated {
+  margin: 6px 8px 4px;
+  padding-top: 10px;
+  border-top: 1px solid var(--da-hairline);
+  font-size: 12px;
+  color: var(--da-faint);
+  text-align: center;
+}
+
+@media (max-width: 960px) {
+  .fam-cal__main {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .fam-cal__month {
+    position: static;
+  }
+}
+@media (max-width: 760px) {
+  .fam-cal__inner {
+    padding: 12px 12px 28px;
+    gap: 14px;
+  }
+  .fam-cal__soon-head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .fam-cal__tools .ant-segmented {
+    flex: 1;
+  }
+  .fam-cal__tools .ant-segmented-group {
+    display: flex;
+  }
+  .fam-cal__tools .ant-segmented-item {
+    flex: 1;
+  }
+  .fam-cal__ics-label {
+    display: none;
+  }
+  .fam-cal__soon-card {
+    width: 148px;
+    padding: 12px 10px;
+  }
+  .fam-cal__month {
+    padding: 10px 8px 10px;
+    border-radius: 18px;
+  }
+  .fam-cal__strip {
+    grid-template-columns: repeat(12, 48px);
+  }
+  .fam-cal__grid {
+    gap: 3px;
+  }
+  .fam-cal__cell {
+    min-height: 58px;
+    padding: 5px 1px 4px;
+    border-radius: 11px;
+  }
+  .fam-cal__num {
+    width: 24px;
+    height: 24px;
+    font-size: 13px;
+  }
+  .fam-cal__face .fam-avatar {
+    width: 18px !important;
+    height: 18px !important;
+    font-size: 7px !important;
+  }
+  .fam-cal__more {
+    height: 21px;
+    min-width: 21px;
+    font-size: 9.5px;
+  }
+  .fam-cal__face + .fam-cal__face,
+  .fam-cal__face + .fam-cal__more {
+    margin-left: -8px;
+  }
+  .fam-cal__day {
+    grid-template-columns: 48px minmax(0, 1fr);
+    gap: 8px;
+    padding: 9px 4px;
+  }
+  .fam-cal__day + .fam-cal__day::before {
+    left: 60px;
+    right: 4px;
+  }
+  .fam-cal__badge {
+    height: 50px;
+  }
+  .fam-cal__badge-num {
+    font-size: 19px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fam-cal__soon-card,
+  .fam-cal__cell,
+  .fam-cal__event {
+    transition: none;
+  }
+  .fam-cal__soon-card:hover {
+    transform: none;
+  }
+}
+
+/* Four modes on a phone: only the chosen one keeps its label. */
+@media (max-width: 760px) {
+  .fam-modes .ant-segmented-item {
+    flex: 1 1 0;
+  }
+  .fam-modes .ant-segmented-item-selected {
+    flex: 2.4 1 0;
+  }
+  .fam-modes .ant-segmented-item:not(.ant-segmented-item-selected) .ant-segmented-item-icon + span {
+    display: none;
+  }
+  .fam-modes .ant-segmented-item:not(.ant-segmented-item-selected) .ant-segmented-item-icon {
+    margin-inline-end: 0;
   }
 }

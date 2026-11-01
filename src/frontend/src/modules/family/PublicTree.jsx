@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { App, Button, Dropdown, Grid, Input, Modal, Segmented, Spin, Upload } from 'antd';
 import {
   ApartmentOutlined,
+  CalendarOutlined,
   BarsOutlined,
   CameraOutlined,
   ClockCircleOutlined,
@@ -20,6 +21,7 @@ import { shortName } from './format';
 import PersonEditor from './components/PersonEditor';
 import TimelineView from './components/TimelineView';
 import PeopleList from './components/PeopleList';
+import CalendarView from './components/CalendarView';
 import { CloneDialog } from './components/Dialogs';
 import PublicGuide from './components/PublicGuide';
 import { useThemeMode } from '../../context/ThemeContext';
@@ -303,6 +305,7 @@ export default function PublicTree() {
                 { value: 'tree', icon: <ApartmentOutlined />, label: t('family.view.tree') },
                 { value: 'timeline', icon: <BarsOutlined />, label: t('family.view.timeline') },
                 { value: 'list', icon: <UnorderedListOutlined />, label: t('family.view.list') },
+                { value: 'calendar', icon: <CalendarOutlined />, label: t('family.view.calendar') },
               ]}
             />
             {data.share?.allowClone && (
@@ -326,7 +329,9 @@ export default function PublicTree() {
           </div>
         )}
         <div className={`fam-body${selectedId ? ' has-panel' : ''}`}>
-          {mode === 'list' ? (
+          {mode === 'calendar' ? (
+            <CalendarView data={data} selectedId={selectedId} onSelect={setSelectedId} title={data.tree.name} />
+          ) : mode === 'list' ? (
             <PeopleList data={data} selectedId={selectedId} onSelect={setSelectedId} />
           ) : mode === 'timeline' ? (
             <TimelineView data={data} selectedId={selectedId} onSelect={setSelectedId} />
