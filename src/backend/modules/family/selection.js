@@ -77,9 +77,12 @@ export function selectPeople(index, rawFilter) {
   const ids = new Set([focus]);
   const line = new Map([[focus, 0]]); // direct ancestors → generation
 
+  // The top of the scale means «all»: no limit, however deep the line goes.
+  const limit = (n) => (n >= MAX_DEPTH ? Infinity : n);
+
   // Up: the chosen side first, then every line above it.
   let level = [focus];
-  for (let depth = 1; depth <= filter.ancestors && level.length; depth += 1) {
+  for (let depth = 1; depth <= limit(filter.ancestors) && level.length; depth += 1) {
     const next = [];
     for (const id of level) {
       const ups = depth === 1 ? parentOnSide(index, id, filter.side) : index.parentsOf.get(id) || [];
@@ -108,7 +111,7 @@ export function selectPeople(index, rawFilter) {
       layer = next;
     }
   };
-  down(focus, filter.descendants);
+  down(focus, limit(filter.descendants));
 
   // Side branches: from each ancestor down `collateral` generations; the
   // focus's own parents give brothers and sisters.

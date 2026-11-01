@@ -96,7 +96,7 @@ test('cleanUnion: known statuses and ordered dates', () => {
 
 // ── Views (selection.js) ────────────────────────────────────────────────────
 
-import { buildIndex, selectPeople, subGraph, parentOnSide } from '../modules/family/selection.js';
+import { buildIndex, selectPeople, subGraph, parentOnSide, MAX_DEPTH } from '../modules/family/selection.js';
 
 /*
  *   gpF(1)═gmF(2)        gpM(3)═gmM(4)
@@ -148,4 +148,14 @@ test('family order: partner ids and 0 for unknown, no repeats or junk', () => {
   assert.deepEqual(cleanFamilyOrder('nope'), []);
   const kept = cleanPerson({ lastName: 'A' }, { firstName: 'B', familyOrder: [3, 0] });
   assert.deepEqual(kept.familyOrder, [3, 0]);
+});
+
+test('family view: the top of the depth scale means all generations', () => {
+  const n = MAX_DEPTH + 5;
+  const line = Array.from({ length: n + 1 }, (_, i) => ({ id: i + 1, gender: 'male' }));
+  const ups = line.slice(1).map((p, i) => ({ childId: i + 1, parentId: p.id }));
+  const deep = buildIndex(line, ups, []);
+  assert.equal(selectPeople(deep, { focus: 1, side: 'father', ancestors: MAX_DEPTH, descendants: 0, collateral: 0 }).ids.size, n + 1);
+  assert.equal(selectPeople(deep, { focus: 1, side: 'father', ancestors: 3, descendants: 0, collateral: 0 }).ids.size, 4);
+  assert.equal(selectPeople(deep, { focus: n + 1, ancestors: 0, descendants: MAX_DEPTH, collateral: 0 }).ids.size, n + 1);
 });

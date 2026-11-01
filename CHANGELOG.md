@@ -8,6 +8,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/); versions fol
 
 - Family: tree setting «Show unknown parents» (⋯ → Name and settings…). Off — no «Mother/Father not known» cards and couple lines; children hang from the one known parent.
 
+### Fixed
+
+- Family views: the top of the ancestors / descendants scale («all») really shows all generations — it used to stop at 12.
+
 ## [1.6.0] — 2026-10-19
 
 First public release of iApp-Skeleton — a production-ready starter for web apps.
