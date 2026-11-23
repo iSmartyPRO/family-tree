@@ -6,8 +6,8 @@
  * rules, so nothing a reader has not reached leaks through any view.
  */
 
-export const EVENT_TYPES = ['appear', 'birth', 'death', 'union', 'side', 'secret', 'moment'];
-export const EVENT_ICONS = { appear: '✦', birth: '✧', death: '✝', union: '⚭', side: '⚑', secret: '❖', moment: '◆' };
+export const EVENT_TYPES = ['appear', 'birth', 'death', 'union', 'side', 'lineage', 'secret', 'moment'];
+export const EVENT_ICONS = { appear: '✦', birth: '✧', death: '✝', union: '⚭', side: '⚑', lineage: '⚘', secret: '❖', moment: '◆' };
 // Couples still together at a point of the story: their end date is not known yet.
 const ONGOING = ['married', 'partners', 'engaged'];
 
@@ -28,6 +28,7 @@ export function storyFacts(story) {
   const unionAt = new Map();
   const unionStates = new Map(); // unionId → [[index, status]]
   const sides = []; // [index, personId, labelId]
+  const lineageAt = new Map(); // child → chapter where their parents become known
   (story?.chapters || []).forEach((chapter, index) => {
     for (const id of chapterPeople(chapter)) if (!firstSeen.has(id)) firstSeen.set(id, index);
     for (const e of chapter.events || []) {
@@ -37,9 +38,10 @@ export function storyFacts(story) {
         if (e.status) unionStates.set(e.unionId, [...(unionStates.get(e.unionId) || []), [index, e.status]]);
       }
       if (e.type === 'side' && e.labelId) for (const id of e.persons || []) sides.push([index, id, e.labelId]);
+      if (e.type === 'lineage') for (const id of e.persons || []) if (!lineageAt.has(id)) lineageAt.set(id, index);
     }
   });
-  return { firstSeen, diedAt, unionAt, unionStates, sides };
+  return { firstSeen, diedAt, unionAt, unionStates, sides, lineageAt };
 }
 
 /** The year a chapter lives in: its own, or the last one before it that has a year. */
@@ -106,7 +108,12 @@ export function treeAt(data, story, upto = null) {
   return {
     ...data,
     persons,
-    parents: data.parents.filter((l) => visible.has(l.childId) && visible.has(l.parentId)),
+    // A child whose parentage comes out later hangs free until then.
+    parents: data.parents.filter((l) => {
+      if (!visible.has(l.childId) || !visible.has(l.parentId)) return false;
+      const told = facts.lineageAt.get(l.childId);
+      return told === undefined || known(told);
+    }),
     unions,
     now: upto === null ? undefined : chapterYear(story, upto),
     storyAt: upto,

@@ -9,12 +9,13 @@ import { cleanDate, UNION_STATUSES } from './rules.js';
  *   Era      a tree that lives in its own calendar (a saga, a novel, a
  *            chronicle): a year suffix and the year that counts as «now».
  *   Stories  ordered chapters told over the tree. Each chapter can carry typed
- *            events — who appears, is born, dies, marries, changes side, which
- *            secret comes out — so the tree can be shown «as of» any chapter.
+ *            events — who appears, is born, dies, marries, changes side, whose
+ *            parents become known, which secret comes out — so the tree can be shown «as of» any chapter.
  */
 
 export const LABEL_COLORS = ['red', 'orange', 'gold', 'green', 'teal', 'blue', 'indigo', 'purple', 'pink', 'gray', 'black'];
-export const EVENT_TYPES = ['appear', 'birth', 'death', 'union', 'side', 'secret', 'moment'];
+// lineage: whose parents become known in this chapter (their parent links show from here).
+export const EVENT_TYPES = ['appear', 'birth', 'death', 'union', 'side', 'lineage', 'secret', 'moment'];
 export const MAX_LABELS = 40;
 export const MAX_EVENTS = 40;
 export const MAX_EVENT_PERSONS = 40;

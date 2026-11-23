@@ -25,29 +25,29 @@ test('family stories: ids are positive, unique and capped', () => {
 
 test('family stories: labels get valid ids, colours and short emblems', () => {
   const labels = cleanLabels([
-    { id: 'Black', name: ' The Blacks ', color: 'black', group: 'Side', emblem: '🐉🔥🔥' },
-    { id: 'black', name: 'Duplicate id', color: 'nope' },
+    { id: 'North', name: ' The North Side ', color: 'black', group: 'Side', emblem: '🌲🔥🔥' },
+    { id: 'north', name: 'Duplicate id', color: 'nope' },
     { name: '' },
     'junk',
   ]);
   assert.equal(labels.length, 2);
-  assert.deepEqual(labels[0], { id: 'black', name: 'The Blacks', color: 'black', group: 'Side', emblem: '🐉🔥' });
-  assert.notEqual(labels[1].id, 'black');
+  assert.deepEqual(labels[0], { id: 'north', name: 'The North Side', color: 'black', group: 'Side', emblem: '🌲🔥' });
+  assert.notEqual(labels[1].id, 'north');
   assert.equal(labels[1].color, 'gray');
   assert.deepEqual(cleanPersonLabels(['black', 'BLACK', 'ghost', 'green'], [{ id: 'black' }, { id: 'green' }]), ['black', 'green']);
   assert.deepEqual(cleanPersonLabels(['a', 'b']), ['a', 'b']);
 });
 
 test('family stories: a tree calendar keeps a suffix and a partial «now»', () => {
-  assert.deepEqual(cleanEra({ era: '  AC ', eraNow: '0133' }), { era: 'AC', eraNow: '0133' });
-  assert.deepEqual(cleanEra({}, { era: 'AC', eraNow: '0120' }), { era: 'AC', eraNow: '0120' });
-  assert.deepEqual(cleanEra({ eraNow: '' }, { era: 'AC', eraNow: '0120' }), { era: 'AC', eraNow: null });
-  assert.throws(() => cleanEra({ eraNow: '133 AC' }), { code: 'INVALID_DATE' });
+  assert.deepEqual(cleanEra({ era: '  AE ', eraNow: '0133' }), { era: 'AE', eraNow: '0133' });
+  assert.deepEqual(cleanEra({}, { era: 'AE', eraNow: '0120' }), { era: 'AE', eraNow: '0120' });
+  assert.deepEqual(cleanEra({ eraNow: '' }, { era: 'AE', eraNow: '0120' }), { era: 'AE', eraNow: null });
+  assert.throws(() => cleanEra({ eraNow: '133 AE' }), { code: 'INVALID_DATE' });
 });
 
 test('family stories: a story needs a title; colour and spoilers are checked', () => {
   assert.throws(() => cleanStory({ title: '  ' }), { code: 'TITLE_REQUIRED' });
-  const story = cleanStory({ title: 'The Dance', color: 'fuchsia', spoilers: 'yes' });
+  const story = cleanStory({ title: 'Moving north', color: 'fuchsia', spoilers: 'yes' });
   assert.equal(story.color, 'indigo');
   assert.equal(story.spoilers, false);
   assert.equal(cleanStory({ spoilers: true }, { title: 'Kept', spoilers: false }).title, 'Kept');
@@ -56,7 +56,7 @@ test('family stories: a story needs a title; colour and spoilers are checked', (
 
 test('family stories: events point at people, couples and labels of the tree', () => {
   assert.equal(cleanEvent({ type: 'explode', persons: [1] }, ctx), null);
-  assert.deepEqual(cleanEvent({ type: 'death', persons: [1, 99], text: ' by dragonfire ' }, ctx), { type: 'death', persons: [1], text: 'by dragonfire' });
+  assert.deepEqual(cleanEvent({ type: 'death', persons: [1, 99], text: ' in a storm ' }, ctx), { type: 'death', persons: [1], text: 'in a storm' });
   assert.equal(cleanEvent({ type: 'death', persons: [99] }, ctx), null);
   // A union event takes its people from the couple and may carry a status.
   assert.deepEqual(cleanEvent({ type: 'union', unionId: 10, persons: [3], status: 'married' }, ctx), {
@@ -76,14 +76,14 @@ test('family stories: events point at people, couples and labels of the tree', (
 
 test('family stories: chapters need a title, keep known people, partial years', () => {
   assert.throws(() => cleanChapter({ title: '' }, null, ctx), { code: 'TITLE_REQUIRED' });
-  assert.throws(() => cleanChapter({ title: 'x', year: '101 AC' }, null, ctx), { code: 'INVALID_DATE' });
+  assert.throws(() => cleanChapter({ title: 'x', year: '101 AE' }, null, ctx), { code: 'INVALID_DATE' });
   const chapter = cleanChapter(
     {
-      title: ' The Heirs of the Dragon ',
+      title: ' The First Winter ',
       label: 'S1 · E1',
-      part: 'Season 1',
-      year: '0105',
-      when: '105 AC',
+      part: 'Part one',
+      year: '1941',
+      when: 'Winter 1941',
       focus: [1, 2, 99],
       events: [{ type: 'appear', persons: [1, 2] }, { type: 'bogus' }, { type: 'death', persons: [4] }],
       body: 'Line one\r\nLine two',
@@ -91,15 +91,15 @@ test('family stories: chapters need a title, keep known people, partial years', 
     null,
     ctx
   );
-  assert.equal(chapter.title, 'The Heirs of the Dragon');
+  assert.equal(chapter.title, 'The First Winter');
   assert.deepEqual(chapter.focus, [1, 2]);
   assert.equal(chapter.events.length, 2);
   assert.equal(chapter.body, 'Line one\nLine two');
   // Fields not sent keep their value.
-  const edited = cleanChapter({ teaser: 'A king chooses his heir.' }, chapter, ctx);
-  assert.equal(edited.title, 'The Heirs of the Dragon');
-  assert.equal(edited.year, '0105');
-  assert.equal(edited.teaser, 'A king chooses his heir.');
+  const edited = cleanChapter({ teaser: 'The family leaves the village.' }, chapter, ctx);
+  assert.equal(edited.title, 'The First Winter');
+  assert.equal(edited.year, '1941');
+  assert.equal(edited.teaser, 'The family leaves the village.');
 });
 
 test('family stories: remapping a chapter follows the new ids and drops the rest', () => {

@@ -225,8 +225,12 @@ export default function StoryPlayer({ data, story, start = 0, guardUpto = null, 
     return () => clearTimeout(timer);
   }, [index, phone]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Focus goes to the player once, when it opens — not on every chapter.
   useEffect(() => {
     closeRef.current?.focus();
+  }, []);
+
+  useEffect(() => {
     const onKey = (event) => {
       if (event.target.closest?.('input, textarea, .ant-modal')) return;
       if (event.key === 'ArrowRight' || event.key === 'PageDown') go(index + 1);

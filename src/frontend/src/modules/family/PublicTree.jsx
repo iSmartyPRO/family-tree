@@ -440,6 +440,7 @@ export default function PublicTree() {
           person={selectedId && index.persons.get(selectedId) ? shortName(index.persons.get(selectedId)) : null}
         />
       )}
+      <TreeTimeContext.Provider value={treeTime(state.data?.tree, null)}>
       <PersonEditor
         open={Boolean(editor)}
         draft={editor}
@@ -449,6 +450,7 @@ export default function PublicTree() {
         onClose={() => setEditor(null)}
         onSubmitOverride={submitProposal}
       />
+      </TreeTimeContext.Provider>
       <Modal
         open={Boolean(askName)}
         title={t('family.public.whoTitle')}

@@ -622,7 +622,7 @@ const TreeCanvas = forwardRef(function TreeCanvas({ data, selectedId, onSelect, 
           </Tooltip>
         )}
         <Popover
-          content={<Legend t={t} labels={labelList} counts={labelCounts} active={labelSpot} onLabel={setLabelSpot} />}
+          content={<Legend t={t} labels={labelList?.filter((l) => labelCounts.get(l.id))} counts={labelCounts} active={labelSpot} onLabel={setLabelSpot} />}
           title={t('family.legend.title')}
           placement="leftTop"
           trigger="click"

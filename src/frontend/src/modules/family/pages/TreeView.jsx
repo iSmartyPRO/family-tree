@@ -647,6 +647,7 @@ export default function TreeView() {
           load();
         }}
       />
+      <TreeTimeContext.Provider value={time}>
       <UnionDialog
         open={Boolean(unionEdit)}
         union={unionEdit?.union}
@@ -657,6 +658,7 @@ export default function TreeView() {
           load();
         }}
       />
+      </TreeTimeContext.Provider>
       <TreeDialog
         open={dialog === 'rename'}
         tree={tree}

@@ -4366,7 +4366,8 @@ a.fam-contact:hover {
 .fam-player {
   position: fixed;
   inset: 0;
-  z-index: 1050;
+  /* Above the app (header, helper robot), below antd overlays (modals, popovers, tooltips). */
+  z-index: 995;
   display: flex;
   flex-direction: column;
   background: var(--da-bg);
@@ -4819,6 +4820,10 @@ a.fam-contact:hover {
 .fam-arcchip.is-current {
   border-color: var(--tag);
   background: var(--tag-soft);
+}
+body:has(.fam-player) .asst,
+body:has(.fam-player) .asst-bubble {
+  display: none;
 }
 .fam-sr {
   position: absolute;
