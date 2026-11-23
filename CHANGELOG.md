@@ -6,6 +6,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/); versions fol
 
 ### Added
 
+- Family: **Stories** — chapters told over the tree (a family chronicle, memories, or a series told episode by episode). Each chapter has typed events: who appears, is born, dies, which couple forms, who takes a side, what secret comes out.
+- Family: the **story player** — chapter text beside the tree as it was at that chapter: newcomers glow, the fallen are mourned, the chapter's people are lit and framed; «Previously» recap, a person card with their story so far and kinship to the chapter's hero; keys ← → Home End Esc, swipes on phones.
+- Family: **no spoilers** — a story can guard its readers: a new visitor says where they are, and the tree, timeline, list, search and person panel show only what is known by then. Also on public links (links to the whole tree carry the stories).
+- Family: **labels** — houses, branches, clans or sides with a colour and an emblem; a coloured band on cards, a legend that lights up a label's people; labels of one group exclude each other in stories.
+- Family: **own calendar** for sagas and chronicles — short years with a suffix, ages counted to the tree's present year or to the chapter being read.
+- Family: export / import / copies carry stories, labels and the calendar.
 - Family: Calendar view — birthdays and memorial days with a countdown, a month grid with faces, the year as a strip of months, the month's dates day by day, and an .ics export (yearly, reminder the evening before). Also on public links.
 - Family: tree setting «Show unknown parents» (⋯ → Name and settings…). Off — no «Mother/Father not known» cards and couple lines; children hang from the one known parent.
 

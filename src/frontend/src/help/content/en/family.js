@@ -45,6 +45,11 @@ export default {
       title: "Links that collect help",
       text: "Share a view: relatives add photos and details, you approve.",
     },
+    {
+      icon: "📖",
+      title: "Stories",
+      text: "Chapters told over the tree: the people of each chapter light up, the tree grows with the story — with a guard against spoilers.",
+    },
   ],
   tips: [
     "Start with yourself, then add parents upwards and children downwards.",
@@ -164,6 +169,36 @@ Add a password and an end date if needed. Visitors introduce themselves once, so
       id: "export",
       title: "Import and export",
       body: "**⋯ → Download JSON** saves everything in this app’s format; **Download GEDCOM** exports for other genealogy programs. **Import** adds people and links from a JSON export of this app or of the old family tree app (ftree); nothing in the tree is replaced.",
+    },
+    {
+      id: "stories",
+      title: "Stories",
+      body: `The **Stories** switch keeps the family's stories as chapters — a chronicle, grandparents' memories, or a series or a novel told episode by episode.
+
+Each chapter has a short name (e.g. *S1 · E3*), a title, a one-line summary, the text and its **main people**. Its **events** say what happens to the tree: who **appears** or is **born**, who **dies**, which couple **forms** (and in what state), who **takes a side** (a label), what **secret** comes out.
+
+**Watch the story** opens the player: chapter text on one side, the tree on the other. The tree is shown as it is at that chapter — people appear when they come in, the fallen get a mourning ribbon, couples form at their wedding. The chapter's people are lit up and framed; tap anyone for a card with their story so far and how they are related to the chapter's hero. **Previously** recaps the chapters before. Keys: ← →, Home, End, Esc; on a phone — swipe.`,
+      steps: [
+        "Open **Stories** and click **New story**.",
+        "Add a chapter: title, text, main people.",
+        "Add events: appearances, births, deaths, unions, sides, secrets.",
+        "Click **Watch the story**.",
+      ],
+    },
+    {
+      id: "spoilers",
+      title: "No spoilers",
+      body: `A story with **Guard against spoilers** on asks a new reader where they are: from the beginning, up to a chapter, or the whole story. After that the tree, timeline, list, search and every person's panel show only what is known by that chapter: later people are hidden, later deaths and weddings have not happened yet. Reading on in the player moves the place forward.
+
+The **eye** button next to the views changes the place at any time. The place is kept in this browser, separately for each tree and link.`,
+      note: "Write people's stories as they are when we first meet them: the rest is told by the chapters, so nothing leaks before its time.",
+    },
+    {
+      id: "labels",
+      title: "Labels and own calendar",
+      body: `**⋯ → Name and settings… → Labels**: houses, branches, clans or sides, each with a colour and an emblem. People with labels get a coloured band on their card; the legend (**?**) lists the labels — click one to light up its people. Labels of one group (e.g. «Side») exclude each other: in a story, joining one side leaves the other.
+
+**Own calendar** is for a saga, a novel or an old chronicle: years are short (type *129*) and get a suffix, and ages are counted to the tree's present year — or to the year of the chapter being read — not to today.`,
     },
   ],
 };

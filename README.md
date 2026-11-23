@@ -71,6 +71,18 @@ Most family-tree tools either lock your family into someone else's cloud, or dra
 </td>
 <td valign="top">
 
+### 📖 Stories
+- Chapters told over the tree — a family chronicle, grandparents' memories, or a series episode by episode
+- Typed events move the tree through the story: appearances, births, deaths, unions, sides taken, secrets revealed
+- A **story player**: the tree grows chapter by chapter, the chapter's people are lit and framed, the fallen are mourned, «Previously» recaps the rest
+- **No spoilers**: readers say where they are, and every view shows only what is known by then — on public links too
+- **Labels** for houses, branches and sides, and an **own calendar** for sagas and chronicles
+
+</td>
+</tr>
+<tr>
+<td valign="top">
+
 ### 🔍 Views
 - Saved views: *my family*, *father's side*, *mother's side*, *my ancestors*, *my descendants*, *everyone around me*
 - Depth up and down, side branches (siblings → cousins → their children), partners on or off
@@ -242,11 +254,13 @@ src/backend/modules/family/      Express routes over PostgreSQL (no ORM)
   shares.js        public links: tokens, passwords, expiry, identity, theme
   suggestions.js   proposals from links: suggest / edit, review
   log.js           activity log
+  stories.js       stories and chapters; storyRules.js — their checks, labels, own calendar
 
 src/frontend/src/modules/family/   React + Ant Design
   layout.js        the tree layout
   timeline.js      lifelines
   kinship.js       "Grandmother (father's side)" labels
+  story.js         the tree «as of» a chapter: spoiler guard, player, a person's arc
   components/      canvas, panels, dialogs, photo viewer, date picker, helper robot
   pages/           tree list, tree view;  PublicTree.jsx — the shared-link page
 ```
@@ -266,6 +280,7 @@ Everything the UI does is available as JSON — signed-in users at `/api/app/fam
 | Trees | `GET/POST /trees`, `GET/PUT/DELETE /trees/:id`, `PUT /trees/:id/access`, `POST /trees/:id/clone` |
 | People | `POST /trees/:id/persons` (optionally with a `relation`: parent, child, partner, sibling, co-parent), `PUT/DELETE /persons/:id`, `POST/DELETE /persons/:id/photo` |
 | Links | `POST /trees/:id/parents`, `POST /trees/:id/unions`, `PUT/DELETE /parents/:id`, `PUT/DELETE /unions/:id` |
+| Stories | `POST /trees/:id/stories`, `PUT /trees/:id/stories/order`, `PUT/DELETE /stories/:id`, `POST /stories/:id/chapters`, `PUT /stories/:id/chapters/order`, `PUT/DELETE /chapters/:id` |
 | Views | `GET/POST /trees/:id/views`, `PUT/DELETE /views/:id`, `POST /trees/:id/select`, `PUT /trees/:id/me` |
 | Sharing | `GET/POST /trees/:id/shares`, `PUT/DELETE /shares/:id`, `GET /trees/:id/suggestions`, `POST /suggestions/:id/accept` · `/reject`, `GET /trees/:id/log` |
 | Data | `GET /trees/:id/export?format=gedcom`, `POST /trees/:id/import` |
