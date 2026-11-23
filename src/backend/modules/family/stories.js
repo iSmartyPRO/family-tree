@@ -46,11 +46,10 @@ const chapterShape = (row) => ({
 
 /** What a chapter may point at: the tree's people, couples and labels. */
 async function treeContext(run, treeId) {
-  const [persons, unions, tree] = await Promise.all([
-    run(`SELECT id FROM family_persons WHERE tree_id = $1`, [treeId]),
-    run(`SELECT id, partner_a, partner_b FROM family_unions WHERE tree_id = $1`, [treeId]),
-    run(`SELECT labels FROM family_trees WHERE id = $1`, [treeId]),
-  ]);
+  // One after another: inside a transaction `run` is a single client.
+  const persons = await run(`SELECT id FROM family_persons WHERE tree_id = $1`, [treeId]);
+  const unions = await run(`SELECT id, partner_a, partner_b FROM family_unions WHERE tree_id = $1`, [treeId]);
+  const tree = await run(`SELECT labels FROM family_trees WHERE id = $1`, [treeId]);
   return {
     persons: new Set(persons.rows.map((r) => r.id)),
     unions: new Map(unions.rows.map((r) => [r.id, { partners: [r.partner_a, r.partner_b] }])),
