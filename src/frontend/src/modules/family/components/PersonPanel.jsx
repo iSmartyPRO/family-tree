@@ -27,6 +27,9 @@ import { kinOf, missingParentSuggestion } from '../kin';
 import { familiesOf, unionState } from '../layout';
 import { Avatar } from './TreeCanvas';
 import PhotoViewer from './PhotoViewer';
+import { LabelChips } from './StoryParts';
+import { EVENT_ICONS, chapterTag, personArc, secretsOf } from '../story';
+import { useTreeTime } from '../time';
 
 function contactHref(key, value) {
   const v = String(value).trim();
@@ -70,8 +73,12 @@ function Relative({ person, note, onOpen, onUnlink, canEdit, t, children }) {
 }
 
 /** Details of the selected person, their relatives and what can be done. */
-export default function PersonPanel({ index, fullIndex, onShowAll, personId, treeId, canEdit, canManage, homeId, onClose, onSelect, onEdit, onAdd, onLink, onChanged, onSetHome, onUnion, relation, isMe, onSetMe, extraActions }) {
+export default function PersonPanel({ index, fullIndex, onShowAll, personId, treeId, canEdit, canManage, homeId, onClose, onSelect, onEdit, onAdd, onLink, onChanged, onSetHome, onUnion, relation, isMe, onSetMe, extraActions, story = null, storyUpto = null, labels = null, onChapter }) {
   const { t } = useLocale();
+  const { now, era } = useTreeTime();
+  // The person's part in the story, up to where the reader is.
+  const arc = useMemo(() => (story ? personArc(story, personId, storyUpto) : []), [story, personId, storyUpto]);
+  const secrets = useMemo(() => (story ? secretsOf(story, personId, storyUpto) : []), [story, personId, storyUpto]);
   const { message, modal } = App.useApp();
   const regional = useRegional();
   const person = index.persons.get(personId);
@@ -111,7 +118,9 @@ export default function PersonPanel({ index, fullIndex, onShowAll, personId, tre
     }
   };
 
-  const age = ageOf(person);
+  const age = ageOf(person, now);
+  const would = wouldBeNow(person, now);
+  const doubt = maybeDeceased(person, now);
   const date = (value) => formatPartial(value, regional.dateFormat);
   const roleOf = (p, kind) => t(`family.role.${kind}.${p.gender === 'male' ? 'male' : p.gender === 'female' ? 'female' : 'unknown'}`);
   const contacts = Object.entries(person.contacts || {}).filter(([, v]) => v);
@@ -180,12 +189,14 @@ export default function PersonPanel({ index, fullIndex, onShowAll, personId, tre
         <h2 className="fam-panel__name">{displayName(person, { withPatronymic: true })}</h2>
         {(isMe || relation) && <div className={`fam-panel__kin${isMe ? ' is-me' : ''}`}>{isMe ? t('family.me.thisIsYou') : relation}</div>}
         {person.maidenName && <div className="fam-panel__maiden">{t('family.panel.born', { name: person.maidenName })}</div>}
+        {labels && <LabelChips ids={person.labels} labels={labels} />}
         <div className="fam-panel__life">
           {person.birthDate && <span>{date(person.birthDate)}</span>}
           {!person.isAlive && <span>— {person.deathDate ? date(person.deathDate) : '?'}</span>}
+          {era && (person.birthDate || person.deathDate) && <span className="fam-panel__era">{era}</span>}
           {age !== null && <span className="fam-chip">{person.isAlive ? t('family.panel.age', { count: age }) : t('family.panel.ageAtDeath', { count: age })}</span>}
           {!person.isAlive && !age && <span className="fam-chip">{t('family.deceased')}</span>}
-          {wouldBeNow(person) !== null && <span className="fam-panel__would">{t('family.panel.wouldBe', { count: wouldBeNow(person) })}</span>}
+          {would !== null && <span className="fam-panel__would">{t('family.panel.wouldBe', { count: would })}</span>}
         </div>
         {!canEdit && extraActions && <div className="fam-panel__actions">{extraActions}</div>}
         {!canEdit && onSetMe && (
@@ -228,12 +239,12 @@ export default function PersonPanel({ index, fullIndex, onShowAll, personId, tre
       </div>
 
       <div className="fam-panel__body">
-        {maybeDeceased(person) && (
+        {doubt && (
           <Alert
             type="warning"
             showIcon
             className="fam-panel__suggest"
-            message={t('family.panel.maybeDeceased', { count: ageOf(person) })}
+            message={t('family.panel.maybeDeceased', { count: age })}
             action={
               canEdit && (
                 <Button size="small" onClick={() => onEdit(person)}>
@@ -300,6 +311,42 @@ export default function PersonPanel({ index, fullIndex, onShowAll, personId, tre
         )}
 
         {person.bio && <p className="fam-bio">{person.bio}</p>}
+
+        {(arc.length > 0 || secrets.length > 0) && (
+          <section className="fam-arc">
+            <h3 className="fam-arc__title">{t('family.story.inStory', { story: story.title })}</h3>
+            {secrets.map((s, i) => (
+              <div key={`s-${i}`} className="fam-arc__secret">
+                <span aria-hidden="true">{EVENT_ICONS.secret}</span>
+                <span>
+                  <b>{t('family.story.event.secret')}</b> · {s.text || ''} <span className="fam-arc__from">{chapterTag(s.chapter, s.index)}</span>
+                </span>
+              </div>
+            ))}
+            <ol className="fam-arc__list">
+              {arc.map(({ chapter, index: at, roles }) => (
+                <li key={chapter.id}>
+                  <button type="button" className="fam-arc__item" onClick={() => onChapter?.(story.id, at)}>
+                    <span className="fam-arc__tag">{chapterTag(chapter, at)}</span>
+                    <span className="fam-arc__text">
+                      <span className="fam-arc__name">{chapter.title}</span>
+                      {chapter.teaser && <span className="fam-arc__teaser">{chapter.teaser}</span>}
+                    </span>
+                    <span className="fam-arc__roles">
+                      {roles
+                        .filter((r) => r !== 'focus' && r !== 'appear')
+                        .map((r) => (
+                          <span key={r} title={t(`family.story.event.${r}`)}>
+                            {EVENT_ICONS[r]}
+                          </span>
+                        ))}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ol>
+          </section>
+        )}
 
         {families.length > 1 && (
           <section className="fam-kin fam-families">

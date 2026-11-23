@@ -1,10 +1,11 @@
 import { memo, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState, forwardRef } from 'react';
 import { Popover, Tooltip } from 'antd';
-import { AimOutlined, CompressOutlined, ExpandOutlined, MinusOutlined, PlusOutlined, QuestionOutlined } from '@ant-design/icons';
+import { AimOutlined, CloseOutlined, CompressOutlined, ExpandOutlined, MinusOutlined, PlusOutlined, QuestionOutlined } from '@ant-design/icons';
 import { useRegional } from '../../../lib/datetime';
 import { useLocale } from '../../../context/LocaleContext';
 import { CARD_H, CARD_W, connectorPaths, layoutTree, lineage, roundedPath } from '../layout';
 import { ageOf, displayName, formatPartial, initials, lifeYears, maybeDeceased } from '../format';
+import { useTreeTime } from '../time';
 
 function useFmtPartial() {
   const regional = useRegional();
@@ -26,7 +27,23 @@ export function Avatar({ person, size = 48, className = '' }) {
   );
 }
 
-const PersonCard = memo(function PersonCard({ node, selected, dim, related, onSelect, onOpen, onPlaceholder, t }) {
+/** Small colour marks of a person's labels (houses, branches, sides). */
+export function LabelDots({ ids, labels, max = 3 }) {
+  const list = (ids || []).map((id) => labels?.get(id)).filter(Boolean);
+  if (!list.length) return null;
+  return (
+    <span className="fam-dots" aria-label={list.map((l) => l.name).join(', ')}>
+      {list.slice(0, max).map((l) => (
+        <span key={l.id} className={`fam-dot fam-tag--${l.color}`} title={l.name}>
+          {l.emblem || ''}
+        </span>
+      ))}
+    </span>
+  );
+}
+
+const PersonCard = memo(function PersonCard({ node, selected, dim, related, spot, onSelect, onOpen, onPlaceholder, labels, t }) {
+  const { now } = useTreeTime();
   const person = node.person;
   if (node.placeholder) {
     return (
@@ -50,10 +67,11 @@ const PersonCard = memo(function PersonCard({ node, selected, dim, related, onSe
       </div>
     );
   }
-  const age = ageOf(person);
+  const age = ageOf(person, now);
+  const doubt = maybeDeceased(person, now);
   return (
     <div
-      className={`fam-card fam-card--${person.gender}${person.isAlive ? '' : ' is-deceased'}${selected ? ' is-selected' : ''}${dim ? ' is-dim' : ''}${related ? ' is-related' : ''}`}
+      className={`fam-card fam-card--${person.gender}${person.isAlive ? '' : ' is-deceased'}${selected ? ' is-selected' : ''}${dim ? ' is-dim' : ''}${related ? ' is-related' : ''}${spot ? ` ${spot}` : ''}`}
       style={{ transform: `translate(${node.x + PAD}px, ${node.y + PAD}px)`, width: CARD_W, height: CARD_H }}
       data-person={node.personId}
       title={displayName(person, { withPatronymic: true })}
@@ -75,15 +93,16 @@ const PersonCard = memo(function PersonCard({ node, selected, dim, related, onSe
         </span>
       )}
       <Avatar person={person} size={36} />
+      {labels && <LabelDots ids={person.labels} labels={labels} />}
       <div className="fam-card__text">
         <div className="fam-card__first">{person.firstName || person.lastName || '—'}</div>
         {!person.isAlive && <span className="fam-mourning" aria-label={t('family.deceased')} />}
         {person.isAlive
           ? age !== null && (
               <div className="fam-card__meta">
-                <span className={`fam-card__age${maybeDeceased(person) ? ' is-doubt' : ''}`}>
+                <span className={`fam-card__age${doubt ? ' is-doubt' : ''}`}>
                   {t('family.ageShort', { count: age })}
-                  {maybeDeceased(person) ? ' ?' : ''}
+                  {doubt ? ' ?' : ''}
                 </span>
               </div>
             )
@@ -155,7 +174,7 @@ function UnionRing({ line, t, canEdit, onUnion, dim }) {
   );
 }
 
-function Legend({ t }) {
+function Legend({ t, labels, counts, active, onLabel }) {
   const rows = [
     ['active', t('family.legend.active')],
     ['ended', t('family.legend.ended')],
@@ -180,6 +199,26 @@ function Legend({ t }) {
           <span>{label}</span>
         </div>
       ))}
+      {labels?.length > 0 && (
+        <div className="fam-legend__labels">
+          <div className="fam-legend__head">{t('family.labels.title')}</div>
+          {labels.map((l) => (
+            <button
+              key={l.id}
+              type="button"
+              className={`fam-legend__label${active === l.id ? ' is-active' : ''}`}
+              onClick={() => onLabel(active === l.id ? null : l.id)}
+              aria-pressed={active === l.id}
+            >
+              <span className={`fam-dot fam-tag--${l.color}`}>{l.emblem || ''}</span>
+              <span className="fam-legend__name">{l.name}</span>
+              {l.group && <span className="fam-legend__group">{l.group}</span>}
+              <span className="fam-legend__count">{counts.get(l.id) || 0}</span>
+            </button>
+          ))}
+          <div className="fam-legend__hint">{t('family.labels.legendHint')}</div>
+        </div>
+      )}
     </div>
   );
 }
@@ -189,8 +228,16 @@ function Legend({ t }) {
  * cursor (wheel, pinch, +/−), minimap, line-of-descent highlight and quick
  * "add relative" buttons around the selected person.
  */
-const TreeCanvas = forwardRef(function TreeCanvas({ data, selectedId, onSelect, onOpen, onQuickAdd, onPlaceholder, onUnion, canEdit, homeId }, ref) {
+const TreeCanvas = forwardRef(function TreeCanvas({ data, selectedId, onSelect, onOpen, onQuickAdd, onPlaceholder, onUnion, canEdit, homeId, spotlight = null, compact = false }, ref) {
   const { t } = useLocale();
+  const labelList = data.tree?.labels;
+  const labels = useMemo(() => (labelList?.length ? new Map(labelList.map((l) => [l.id, l])) : null), [labelList]);
+  const [labelSpot, setLabelSpot] = useState(null);
+  const labelCounts = useMemo(() => {
+    const counts = new Map();
+    for (const p of data.persons) for (const id of p.labels || []) counts.set(id, (counts.get(id) || 0) + 1);
+    return counts;
+  }, [data.persons]);
   const viewportRef = useRef(null);
   const worldRef = useRef(null);
   const view = useRef({ x: 0, y: 0, k: 1 });
@@ -287,7 +334,34 @@ const TreeCanvas = forwardRef(function TreeCanvas({ data, selectedId, onSelect, 
     [nodeOf, animateTo, apply]
   );
 
-  useImperativeHandle(ref, () => ({ fit, centerOn }), [fit, centerOn]);
+  /** Brings a group of people into view together (a story chapter's cast). */
+  const frameIds = useCallback(
+    (ids, { maxZoom = 1, animated = true, inset = null } = {}) => {
+      const el = viewportRef.current;
+      const nodes = layout.nodes.filter((n) => n.personId !== null && ids.includes(n.personId));
+      if (!el || !nodes.length) return;
+      const pad = 56;
+      const x0 = Math.min(...nodes.map((n) => n.x)) + PAD - pad;
+      const y0 = Math.min(...nodes.map((n) => n.y)) + PAD - pad;
+      const x1 = Math.max(...nodes.map((n) => n.x + CARD_W)) + PAD + pad;
+      const y1 = Math.max(...nodes.map((n) => n.y + CARD_H)) + PAD + pad;
+      // `inset`: parts of the viewport covered by other things ({ left, right, bottom }).
+      const left = inset?.left || 0;
+      const bottom = inset?.bottom || 0;
+      const w = el.clientWidth - left - (inset?.right || 0);
+      const h = el.clientHeight - bottom;
+      const k = clamp(Math.min(w / (x1 - x0), h / (y1 - y0), maxZoom), MIN_K, MAX_K);
+      const target = { k, x: left + (w - (x1 - x0) * k) / 2 - x0 * k, y: (h - (y1 - y0) * k) / 2 - y0 * k };
+      if (animated) animateTo(target);
+      else {
+        view.current = target;
+        apply();
+      }
+    },
+    [layout, animateTo, apply]
+  );
+
+  useImperativeHandle(ref, () => ({ fit, centerOn, frame: frameIds }), [fit, centerOn, frameIds]);
 
   // First view: the whole tree when it is readable, otherwise its home person.
   useEffect(() => {
@@ -385,6 +459,8 @@ const TreeCanvas = forwardRef(function TreeCanvas({ data, selectedId, onSelect, 
       if (event.target.closest?.('input, textarea, [contenteditable="true"], .ant-modal, .ant-drawer')) return;
       const el = viewportRef.current;
       if (!el) return;
+      // The story player on top owns the keyboard.
+      if (document.querySelector('.fam-player') && !el.closest('.fam-player')) return;
       if (event.key === '+' || event.key === '=') zoomAt(1.2, el.clientWidth / 2, el.clientHeight / 2);
       else if (event.key === '-') zoomAt(1 / 1.2, el.clientWidth / 2, el.clientHeight / 2);
       else if (event.key === '0') fit();
@@ -402,7 +478,19 @@ const TreeCanvas = forwardRef(function TreeCanvas({ data, selectedId, onSelect, 
     [selectedId, layout]
   );
 
-  const hl = highlight;
+  // A story chapter or a label in the legend lights up its people; the rest dims.
+  const spotIds = useMemo(() => {
+    if (spotlight?.ids?.size) return spotlight.ids;
+    if (labelSpot) return new Set(data.persons.filter((p) => (p.labels || []).includes(labelSpot)).map((p) => p.id));
+    return null;
+  }, [spotlight, labelSpot, data.persons]);
+  const hl = spotIds ? { near: spotIds } : highlight;
+  const spotClass = (id) => {
+    if (!spotlight) return '';
+    if (spotlight.fallen?.has(id)) return 'is-fallen';
+    if (spotlight.fresh?.has(id)) return 'is-fresh';
+    return spotIds?.has(id) ? 'is-spot' : '';
+  };
   const lineClass = (ids) => {
     if (!hl) return '';
     const real = ids.filter((id) => id !== null && id !== undefined);
@@ -440,7 +528,7 @@ const TreeCanvas = forwardRef(function TreeCanvas({ data, selectedId, onSelect, 
   }, []);
 
   return (
-    <div className="fam-stage" data-tour="family.canvas">
+    <div className={`fam-stage${compact ? ' fam-stage--compact' : ''}`} data-tour="family.canvas">
       <div
         ref={viewportRef}
         className="fam-viewport"
@@ -487,6 +575,8 @@ const TreeCanvas = forwardRef(function TreeCanvas({ data, selectedId, onSelect, 
               selected={node.personId === selectedId}
               related={Boolean(hl && hl.near.has(node.personId) && node.personId !== selectedId)}
               dim={Boolean(hl && !hl.near.has(node.placeholder ? node.of : node.personId))}
+              spot={node.placeholder ? '' : spotClass(node.personId)}
+              labels={labels}
               onSelect={onSelect}
               onOpen={onOpen}
               onPlaceholder={onPlaceholder}
@@ -497,10 +587,17 @@ const TreeCanvas = forwardRef(function TreeCanvas({ data, selectedId, onSelect, 
             .map((c) => (
               <UnionRing key={`ring-${c.key}`} line={c} t={t} canEdit={canEdit} onUnion={onUnion} dim={Boolean(hl) && lineClass([c.realA, c.realB]) === ' is-dim'} />
             ))}
-          {canEdit && selectedNode && <QuickAdd node={selectedNode} kin={selectedKin} onQuickAdd={onQuickAdd} t={t} />}
+          {canEdit && selectedNode && !spotlight && <QuickAdd node={selectedNode} kin={selectedKin} onQuickAdd={onQuickAdd} t={t} />}
         </div>
       </div>
 
+      {labelSpot && labels?.get(labelSpot) && !spotlight && (
+        <button type="button" className="fam-spotchip" onClick={() => setLabelSpot(null)} aria-label={t('family.labels.clearSpot')}>
+          <span className={`fam-dot fam-tag--${labels.get(labelSpot).color}`}>{labels.get(labelSpot).emblem || ''}</span>
+          <span>{labels.get(labelSpot).name}</span>
+          <CloseOutlined />
+        </button>
+      )}
       <div className="fam-controls" data-tour="family.controls">
         <Tooltip title={t('family.zoomIn')} placement="left">
           <button type="button" onClick={() => zoomAt(1.25, viewportRef.current.clientWidth / 2, viewportRef.current.clientHeight / 2)} aria-label={t('family.zoomIn')}>
@@ -524,7 +621,12 @@ const TreeCanvas = forwardRef(function TreeCanvas({ data, selectedId, onSelect, 
             </button>
           </Tooltip>
         )}
-        <Popover content={<Legend t={t} />} title={t('family.legend.title')} placement="leftTop" trigger="click">
+        <Popover
+          content={<Legend t={t} labels={labelList} counts={labelCounts} active={labelSpot} onLabel={setLabelSpot} />}
+          title={t('family.legend.title')}
+          placement="leftTop"
+          trigger="click"
+        >
           <button type="button" aria-label={t('family.legend.title')} title={t('family.legend.title')}>
             <QuestionOutlined />
           </button>

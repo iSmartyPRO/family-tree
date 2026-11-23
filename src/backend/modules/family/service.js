@@ -14,6 +14,8 @@ import {
 } from '../shared/acl.js';
 import { extOf, newStorageKey, originalName, removeBlob, sendBlob, storagePath, verifyContent } from '../shared/storage.js';
 import { checkParentLink, checkUnion, cleanDate, cleanPerson, cleanTree, cleanUnion, PARENT_KINDS, fullName } from './rules.js';
+import { cleanEra, cleanLabels, cleanPersonLabels } from './storyRules.js';
+import { exportStories, importStories, listStories } from './stories.js';
 
 const ACL = 'family_tree_acl';
 const PHOTO_EXT = ['jpg', 'jpeg', 'png', 'webp'];
@@ -42,6 +44,7 @@ export function personShape(row, photoBase = '/api/app/family') {
     bio: row.bio,
     contacts: row.contacts || {},
     familyOrder: Array.isArray(row.family_order) ? row.family_order : [],
+    labels: Array.isArray(row.labels) ? row.labels : [],
     photoUrl: row.photo_key ? `${photoBase}/persons/${row.id}/photo?v=${row.photo_version}` : null,
     photoFullUrl: row.photo_key && row.photo_full_key ? `${photoBase}/persons/${row.id}/photo?size=full&v=${row.photo_version}` : null,
     updatedAt: row.updated_at,
@@ -65,6 +68,9 @@ function treeShape(row, level) {
     description: row.description || '',
     homePersonId: row.home_person_id || null,
     showUnknownParents: row.show_unknown_parents !== false,
+    era: row.era || '',
+    eraNow: row.era_now || null,
+    labels: Array.isArray(row.labels) ? row.labels : [],
     personCount: Number(row.person_count || 0),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -138,10 +144,13 @@ export async function listTrees(ctx) {
 
 export async function createTree(ctx, input) {
   const tree = cleanTree(input);
+  const era = cleanEra(input);
+  const labels = cleanLabels(input.labels);
   return withTransaction(async (client) => {
     const { rows } = await client.query(
-      `INSERT INTO family_trees (name, description, show_unknown_parents, created_by, updated_by) VALUES ($1, $2, $4, $3, $3) RETURNING id`,
-      [tree.name, tree.description, ctx.userId, tree.showUnknownParents]
+      `INSERT INTO family_trees (name, description, show_unknown_parents, created_by, updated_by, era, era_now, labels)
+       VALUES ($1, $2, $4, $3, $3, $5, $6, $7) RETURNING id`,
+      [tree.name, tree.description, ctx.userId, tree.showUnknownParents, era.era, era.eraNow, JSON.stringify(labels)]
     );
     const id = rows[0].id;
     await writeAcl(client, ACL, id, [{ subjectType: 'user', subjectId: ctx.userId, level: 'manage' }], null);
@@ -161,9 +170,13 @@ export async function updateTree(ctx, treeId, input) {
       if (person.tree_id !== treeId) throw httpError(400, 'This person is not in the tree', 'WRONG_TREE');
     }
   }
+  const era = cleanEra(input, { era: current.era, eraNow: current.era_now });
+  const labels = input.labels === undefined ? current.labels || [] : cleanLabels(input.labels);
   await query(
-    `UPDATE family_trees SET name = $2, description = $3, home_person_id = $4, show_unknown_parents = $6, updated_by = $5, updated_at = NOW() WHERE id = $1`,
-    [treeId, tree.name, tree.description, home, ctx.userId, tree.showUnknownParents]
+    `UPDATE family_trees SET name = $2, description = $3, home_person_id = $4, show_unknown_parents = $6, updated_by = $5, updated_at = NOW(),
+       era = $7, era_now = $8, labels = $9
+     WHERE id = $1`,
+    [treeId, tree.name, tree.description, home, ctx.userId, tree.showUnknownParents, era.era, era.eraNow, JSON.stringify(labels)]
   );
 }
 
@@ -199,7 +212,7 @@ export async function getTree(ctx, treeId) {
       [treeId]
     )
   ).rows[0];
-  return { tree: treeShape(row, level), ...(await loadGraph(treeId)) };
+  return { tree: treeShape(row, level), ...(await loadGraph(treeId)), stories: await listStories(treeId) };
 }
 
 // ── People ──────────────────────────────────────────────────────────────────
@@ -207,8 +220,8 @@ export async function getTree(ctx, treeId) {
 async function insertPerson(client, treeId, person, userId) {
   const { rows } = await client.query(
     `INSERT INTO family_persons (tree_id, first_name, last_name, patronymic, maiden_name, gender, birth_date, birth_place,
-       is_alive, death_date, death_place, occupation, bio, contacts, created_by, updated_by, family_order)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$15,$16) RETURNING *`,
+       is_alive, death_date, death_place, occupation, bio, contacts, created_by, updated_by, family_order, labels)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$15,$16,$17) RETURNING *`,
     [
       treeId,
       person.firstName,
@@ -226,9 +239,16 @@ async function insertPerson(client, treeId, person, userId) {
       JSON.stringify(person.contacts),
       userId,
       JSON.stringify(person.familyOrder || []),
+      JSON.stringify(person.labels || []),
     ]
   );
   return rows[0];
+}
+
+/** Labels a person may hold: the ones the tree defines. */
+async function treeLabels(run, treeId) {
+  const row = (await run(`SELECT labels FROM family_trees WHERE id = $1`, [treeId])).rows[0];
+  return Array.isArray(row?.labels) ? row.labels : [];
 }
 
 async function graphLinks(client, treeId) {
@@ -294,6 +314,7 @@ async function samePersonTree(client, treeId, ids) {
 export async function createPerson(ctx, treeId, input = {}) {
   await requireTree(ctx, treeId, LEVEL.edit);
   const person = cleanPerson(input);
+  person.labels = cleanPersonLabels(input.labels, await treeLabels(query, treeId));
   const relation = input.relation && typeof input.relation === 'object' ? input.relation : null;
   return withTransaction(async (client) => {
     const row = await insertPerson(client, treeId, person, ctx.userId);
@@ -367,10 +388,11 @@ export async function updatePerson(ctx, personId, input = {}) {
     const locked = (await client.query(`SELECT * FROM family_persons WHERE id = $1 FOR UPDATE`, [personId])).rows[0];
     if (!locked) throw httpError(404, 'Person not found', 'NOT_FOUND');
     const person = cleanPerson(input, personShape(locked));
+    const labels = input.labels === undefined ? locked.labels || [] : cleanPersonLabels(input.labels, await treeLabels(client.query.bind(client), locked.tree_id));
     const { rows } = await client.query(
       `UPDATE family_persons SET first_name=$2, last_name=$3, patronymic=$4, maiden_name=$5, gender=$6, birth_date=$7,
          birth_place=$8, is_alive=$9, death_date=$10, death_place=$11, occupation=$12, bio=$13, contacts=$14,
-         updated_by=$15, updated_at=NOW(), family_order=$16
+         updated_by=$15, updated_at=NOW(), family_order=$16, labels=$17
        WHERE id=$1 RETURNING *`,
       [
         personId,
@@ -389,6 +411,7 @@ export async function updatePerson(ctx, personId, input = {}) {
         JSON.stringify(person.contacts),
         ctx.userId,
         JSON.stringify(person.familyOrder || []),
+        JSON.stringify(labels),
       ]
     );
     await touchTree(client, locked.tree_id, ctx.userId);
@@ -616,14 +639,24 @@ export const listSubjects = aclSubjects;
 // ── Export / import ─────────────────────────────────────────────────────────
 
 export async function exportTree(ctx, treeId) {
-  const { tree, persons, parents, unions } = await getTree(ctx, treeId);
+  const { tree, persons, parents, unions, stories } = await getTree(ctx, treeId);
   return {
     format: 'family-tree-v1',
     exportedAt: new Date().toISOString(),
-    tree: { name: tree.name, description: tree.description, homePersonId: tree.homePersonId, showUnknownParents: tree.showUnknownParents },
-    persons: persons.map(({ photoUrl, updatedAt, ...person }) => ({ ...person, hasPhoto: Boolean(photoUrl) })),
+    tree: {
+      name: tree.name,
+      description: tree.description,
+      homePersonId: tree.homePersonId,
+      showUnknownParents: tree.showUnknownParents,
+      era: tree.era,
+      eraNow: tree.eraNow,
+      labels: tree.labels,
+    },
+    persons: persons.map(({ photoUrl, photoFullUrl, updatedAt, ...person }) => ({ ...person, hasPhoto: Boolean(photoUrl) })),
+    // Unions keep their ids: chapters refer to them.
     parents: parents.map(({ id, ...link }) => link),
-    unions: unions.map(({ id, ...union }) => union),
+    unions,
+    stories: exportStories(stories),
   };
 }
 
@@ -632,7 +665,8 @@ const GEDCOM_MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', '
 function gedcomDate(value) {
   if (!value) return null;
   const [y, m, d] = value.split('-');
-  return [d ? Number(d) : null, m ? GEDCOM_MONTHS[Number(m) - 1] : null, y].filter(Boolean).join(' ');
+  // Years of a tree in its own calendar are stored as 0129: GEDCOM wants 129.
+  return [d ? Number(d) : null, m ? GEDCOM_MONTHS[Number(m) - 1] : null, String(Number(y))].filter(Boolean).join(' ');
 }
 
 /**
@@ -706,7 +740,26 @@ export async function importInto(ctx, treeId, data) {
   if (!Array.isArray(people)) throw httpError(400, 'Unknown file format', 'BAD_FORMAT');
   if (people.length > 5000) throw httpError(400, 'Too many people in one file', 'TOO_LARGE');
   return withTransaction(async (client) => {
+    // The file's calendar and labels go to a tree that has none yet.
+    const current = (await client.query(`SELECT era, era_now, labels FROM family_trees WHERE id = $1 FOR UPDATE`, [treeId])).rows[0];
+    let labels = Array.isArray(current.labels) ? current.labels : [];
+    if (!legacy && data.tree && typeof data.tree === 'object') {
+      const incoming = cleanLabels(data.tree.labels);
+      const known = new Set(labels.map((l) => l.id));
+      const merged = cleanLabels([...labels, ...incoming.filter((l) => !known.has(l.id))]);
+      let era = { era: current.era, eraNow: current.era_now };
+      if (!current.era && data.tree.era) {
+        try {
+          era = cleanEra({ era: data.tree.era, eraNow: data.tree.eraNow });
+        } catch {
+          era = cleanEra({ era: data.tree.era });
+        }
+      }
+      await client.query(`UPDATE family_trees SET labels = $2, era = $3, era_now = $4 WHERE id = $1`, [treeId, JSON.stringify(merged), era.era, era.eraNow]);
+      labels = merged;
+    }
     const idMap = new Map();
+    const unionMap = new Map();
     const orders = [];
     let skipped = 0;
     for (const raw of people) {
@@ -730,7 +783,7 @@ export async function importInto(ctx, treeId, data) {
         skipped += 1;
         continue;
       }
-      const row = await insertPerson(client, treeId, { ...person, familyOrder: [] }, ctx.userId);
+      const row = await insertPerson(client, treeId, { ...person, familyOrder: [], labels: cleanPersonLabels(raw.labels, labels) }, ctx.userId);
       if (raw.id !== undefined) {
         await client.query(`UPDATE family_persons SET legacy_id = $2 WHERE id = $1`, [row.id, String(raw.id).slice(0, 64)]);
         idMap.set(String(raw.id), row.id);
@@ -770,7 +823,8 @@ export async function importInto(ctx, treeId, data) {
       if (!a || !b) continue;
       try {
         await client.query('SAVEPOINT link');
-        await linkUnion(client, treeId, a, b, couple);
+        const row = await linkUnion(client, treeId, a, b, couple);
+        if (couple.id !== undefined) unionMap.set(String(couple.id), row.id);
         await client.query('RELEASE SAVEPOINT link');
         links += 1;
       } catch (err) {
@@ -778,8 +832,9 @@ export async function importInto(ctx, treeId, data) {
         problems.push(err.code || 'ERROR');
       }
     }
+    const stories = legacy ? 0 : await importStories(client, treeId, data.stories, { idMap, unionMap, labels, userId: ctx.userId });
     await touchTree(client, treeId, ctx.userId);
-    return { persons: idMap.size, links, skipped, problems: problems.length };
+    return { persons: idMap.size, links, skipped, problems: problems.length, stories };
   });
 }
 

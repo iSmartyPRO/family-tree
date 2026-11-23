@@ -45,6 +45,15 @@ export const familyApi = {
   acceptSuggestion: (id) => api.post(`${base}/suggestions/${id}/accept`),
   rejectSuggestion: (id) => api.post(`${base}/suggestions/${id}/reject`),
 
+  createStory: (treeId, payload) => api.post(`${base}/trees/${treeId}/stories`, payload),
+  orderStories: (treeId, ids) => api.put(`${base}/trees/${treeId}/stories/order`, { ids }),
+  updateStory: (id, payload) => api.put(`${base}/stories/${id}`, payload),
+  deleteStory: (id) => api.delete(`${base}/stories/${id}`),
+  createChapter: (storyId, payload) => api.post(`${base}/stories/${storyId}/chapters`, payload),
+  orderChapters: (storyId, ids) => api.put(`${base}/stories/${storyId}/chapters/order`, { ids }),
+  updateChapter: (id, payload) => api.put(`${base}/chapters/${id}`, payload),
+  deleteChapter: (id) => api.delete(`${base}/chapters/${id}`),
+
   shares: (treeId) => api.get(`${base}/trees/${treeId}/shares`),
   createShare: (treeId, payload) => api.post(`${base}/trees/${treeId}/shares`, payload),
   updateShare: (id, payload) => api.put(`${base}/shares/${id}`, payload),

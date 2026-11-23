@@ -13,6 +13,7 @@ import {
   SettingOutlined,
   UserOutlined,
   BarsOutlined,
+  BookOutlined,
   UnorderedListOutlined,
   DeleteOutlined,
   DownloadOutlined,
@@ -43,6 +44,11 @@ import { kinLabel, kinship } from '../kinship';
 import PersonPanel from '../components/PersonPanel';
 import PersonEditor from '../components/PersonEditor';
 import { CloneDialog, ImportDialog, LinkDialog, ShareDialog, TreeDialog, UnionDialog } from '../components/Dialogs';
+import StoriesView from '../components/StoriesView';
+import StoryPlayer from '../components/StoryPlayer';
+import { SpoilerControl, SpoilerWelcome } from '../components/StoryParts';
+import { useStoryGuard } from '../useStoryGuard';
+import { TreeTimeContext, treeTime } from '../time';
 
 const LEVELS = { none: 0, view: 1, edit: 2, manage: 3 };
 
@@ -97,10 +103,11 @@ export default function TreeView() {
   const [customFilter, setCustomFilter] = useState(null);
   const [viewIds, setViewIds] = useState(null);
   const [mePicker, setMePicker] = useState(false);
+  const [player, setPlayer] = useState(null);
   const canvas = useRef(null);
 
   const selectedId = Number(params.get('p')) || null;
-  const view = ['timeline', 'list', 'calendar'].includes(params.get('v')) ? params.get('v') : 'tree';
+  const view = ['timeline', 'list', 'calendar', 'stories'].includes(params.get('v')) ? params.get('v') : 'tree';
   const viewParam = params.get('view');
   const activeViewId = viewParam === 'custom' ? 'custom' : Number(viewParam) || null;
   const setParam = useCallback(
@@ -144,7 +151,10 @@ export default function TreeView() {
     load();
   }, [load]);
 
-  const index = useMemo(() => indexTree(data), [data]);
+  // A story with spoilers: everything below shows the tree as the reader knows it.
+  const guard = useStoryGuard(data, `t${treeId}`);
+  const known = guard.shown;
+  const index = useMemo(() => indexTree(known), [known]);
   const activeView = typeof activeViewId === 'number' ? data?.views?.find((v) => v.id === activeViewId) || null : null;
 
   // The people of the active view: asked from the server (the same rules
@@ -167,20 +177,20 @@ export default function TreeView() {
   }, [data, activeView, activeViewId, customFilter, treeId]);
 
   const shown = useMemo(() => {
-    if (!data || !viewIds) return data;
+    if (!known || !viewIds) return known;
     return {
-      ...data,
-      persons: data.persons.filter((p) => viewIds.has(p.id)),
-      parents: data.parents.filter((l) => viewIds.has(l.childId) && viewIds.has(l.parentId)),
-      unions: data.unions.filter((u) => viewIds.has(u.partnerA) && viewIds.has(u.partnerB)),
+      ...known,
+      persons: known.persons.filter((p) => viewIds.has(p.id)),
+      parents: known.parents.filter((l) => viewIds.has(l.childId) && viewIds.has(l.parentId)),
+      unions: known.unions.filter((u) => viewIds.has(u.partnerA) && viewIds.has(u.partnerB)),
     };
-  }, [data, viewIds]);
+  }, [known, viewIds]);
 
   // The panel of a filtered view shows only the view's people.
   const shownIndex = useMemo(() => (viewIds && shown ? indexTree(shown) : index), [viewIds, shown, index]);
 
   // Kinship to «me» for the panel.
-  const kinGraph = useMemo(() => (data ? { ...buildFamilies(data.persons, data.parents, data.unions), byId: index.persons } : null), [data, index]);
+  const kinGraph = useMemo(() => (known ? { ...buildFamilies(known.persons, known.parents, known.unions), byId: index.persons } : null), [known, index]);
   const relationTo = useCallback(
     (personId) => (data?.meId && kinGraph && personId !== data.meId ? kinLabel(t, kinship(kinGraph, kinGraph.byId, data.meId, personId)) : null),
     [data, kinGraph, t]
@@ -226,8 +236,8 @@ export default function TreeView() {
 
   const options = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q || !data) return [];
-    return data.persons
+    if (!q || !known) return [];
+    return known.persons
       .filter((p) => searchText(p).includes(q))
       .slice(0, 12)
       .map((p) => ({
@@ -240,7 +250,7 @@ export default function TreeView() {
           </span>
         ),
       }));
-  }, [query, data]);
+  }, [query, known]);
 
   if (error) {
     const status = error?.response?.status;
@@ -261,6 +271,12 @@ export default function TreeView() {
   }
 
   const tree = data.tree;
+  const time = treeTime(tree, known?.now);
+  const labelMap = new Map((tree.labels || []).map((l) => [l.id, l]));
+  const storyOf = (storyId) => (data.stories || []).find((s) => s.id === storyId && s.chapters.length) || null;
+  const play = (storyId, at = 0) => setPlayer({ storyId, index: at });
+  // Editors work on the stored person, never on the spoiler-safe copy shown.
+  const editorDraft = editor?.person ? { ...editor, person: data.persons.find((p) => p.id === editor.person.id) || editor.person } : editor;
   const exportFile = (format) => {
     window.location.href = familyApi.exportUrl(treeId, format);
   };
@@ -292,11 +308,11 @@ export default function TreeView() {
         ]}
         icon={<ApartmentOutlined />}
         title={tree.name}
-        status={phone ? null : viewIds ? t('family.views.shown', { count: shown.persons.length, total: data.persons.length }) : t('family.peopleCount', { count: data.persons.length })}
+        status={phone ? null : viewIds ? t('family.views.shown', { count: shown.persons.length, total: known.persons.length }) : t('family.peopleCount', { count: known.persons.length })}
         meta={
           data.persons.length > 0 && (
             <div className="fam-meta">
-              {phone && <span className="fam-meta__count">{viewIds ? t('family.views.shown', { count: shown.persons.length, total: data.persons.length }) : t('family.peopleCount', { count: data.persons.length })}</span>}
+              {phone && <span className="fam-meta__count">{viewIds ? t('family.views.shown', { count: shown.persons.length, total: known.persons.length }) : t('family.peopleCount', { count: known.persons.length })}</span>}
               {data.meId && index.persons.has(data.meId) ? (
                 <button type="button" className="fam-me" onClick={() => focus(data.meId)}>
                   <Avatar person={index.persons.get(data.meId)} size={22} />
@@ -314,7 +330,7 @@ export default function TreeView() {
                       autoFocus
                       style={{ width: 300 }}
                       placeholder={t('family.me.pick')}
-                      options={data.persons.map((p) => ({ value: p.id, label: displayName(p), search: searchText(p) }))}
+                      options={known.persons.map((p) => ({ value: p.id, label: displayName(p), search: searchText(p) }))}
                       filterOption={(input, option) => option.search.includes(input.toLowerCase())}
                       onChange={setMe}
                     />
@@ -380,16 +396,19 @@ export default function TreeView() {
               }
               options={[
                 { value: 'tree', icon: <ApartmentOutlined />, label: t('family.view.tree') },
+                (data.stories?.length > 0 || canEdit) && { value: 'stories', icon: <BookOutlined />, label: t('family.view.stories') },
                 { value: 'timeline', icon: <BarsOutlined />, label: t('family.view.timeline') },
                 { value: 'list', icon: <UnorderedListOutlined />, label: t('family.view.list') },
-                { value: 'calendar', icon: <CalendarOutlined />, label: t('family.view.calendar') },
-              ]}
+                // A tree in its own calendar has no birthdays to count down to.
+                !tree.era && { value: 'calendar', icon: <CalendarOutlined />, label: t('family.view.calendar') },
+              ].filter(Boolean)}
             />
           )
         }
         filters={
           data.persons.length > 0 && (
             <div className="fam-filters">
+              <SpoilerControl guard={guard} compact={phone} />
               <Dropdown
                 trigger={['click']}
                 menu={{
@@ -426,7 +445,7 @@ export default function TreeView() {
                   <Button icon={<SettingOutlined />} onClick={() => setBuilder({ view: null })} aria-label={t('family.views.edit')} />
                 </Tooltip>
               )}
-              {!['list', 'calendar'].includes(view) && (
+              {!['list', 'calendar', 'stories'].includes(view) && (
             <AutoComplete
               className="fam-search"
               options={options}
@@ -446,8 +465,11 @@ export default function TreeView() {
         }
       />
 
-      <div className={`fam-body${selectedId ? ' has-panel' : ''}`}>
-        {data.persons.length && view === 'calendar' ? (
+      <TreeTimeContext.Provider value={time}>
+      <div className={`fam-body${selectedId && view !== 'stories' ? ' has-panel' : ''}`}>
+        {view === 'stories' ? (
+          <StoriesView data={data} shown={known} guard={guard} canEdit={canEdit} treeId={treeId} onPlay={play} onChanged={load} />
+        ) : data.persons.length && view === 'calendar' && !tree.era ? (
           <CalendarView data={shown} selectedId={selectedId} onSelect={select} relationTo={relationTo} title={activeView ? activeView.name : tree.name} />
         ) : data.persons.length && view === 'list' ? (
           <PeopleList data={shown} selectedId={selectedId} onSelect={select} onOpen={(personId) => canEdit && setEditor({ person: index.persons.get(personId) })} />
@@ -505,8 +527,12 @@ export default function TreeView() {
             )}
           </div>
         )}
-        {selectedId && index.persons.has(selectedId) && (
+        {selectedId && view !== 'stories' && index.persons.has(selectedId) && (
           <PersonPanel
+            story={guard.story}
+            storyUpto={guard.upto}
+            labels={labelMap}
+            onChapter={play}
             index={shownIndex}
             fullIndex={index}
             onShowAll={(personId) => {
@@ -523,7 +549,7 @@ export default function TreeView() {
             onEdit={(person) => setEditor({ person })}
             onAdd={quickAdd}
             onLink={(personId, kind) => setLinker({ personId, kind })}
-            onUnion={(union, names) => setUnionEdit({ union, names })}
+            onUnion={(union, names) => setUnionEdit({ union: data.unions.find((u) => u.id === union?.id) || union, names })}
             onChanged={load}
             relation={relationTo(selectedId)}
             isMe={data.meId === selectedId}
@@ -541,6 +567,23 @@ export default function TreeView() {
         )}
       </div>
 
+      </TreeTimeContext.Provider>
+      {player && storyOf(player.storyId) && (
+        <StoryPlayer
+          data={data}
+          story={storyOf(player.storyId)}
+          start={player.index}
+          guardUpto={guard.guarded && guard.story?.id === player.storyId ? guard.upto : null}
+          onReached={guard.story?.id === player.storyId ? guard.reached : undefined}
+          onClose={() => setPlayer(null)}
+          onPerson={(personId) => {
+            setPlayer(null);
+            if (view === 'stories') setParam('v', null);
+            setTimeout(() => focus(personId), 60);
+          }}
+        />
+      )}
+      <SpoilerWelcome guard={guard} onPlay={play} />
       <ViewBuilder
         open={Boolean(builder)}
         treeId={treeId}
@@ -589,7 +632,9 @@ export default function TreeView() {
           navigate(`/app/family/t/${res.data.id}`);
         }}
       />
-      <PersonEditor open={Boolean(editor)} treeId={treeId} draft={editor} onClose={() => setEditor(null)} onSaved={saved} />
+      <TreeTimeContext.Provider value={time}>
+        <PersonEditor open={Boolean(editor)} treeId={treeId} draft={editorDraft} labels={tree.labels || []} onClose={() => setEditor(null)} onSaved={saved} />
+      </TreeTimeContext.Provider>
       <LinkDialog
         open={Boolean(linker)}
         kind={linker?.kind}

@@ -31,6 +31,7 @@ import {
   updateUnion,
   uploadPhoto,
 } from './service.js';
+import { createChapter, createStory, deleteChapter, deleteStory, orderChapters, orderStories, updateChapter, updateStory } from './stories.js';
 import { countView, createShare, deleteShare, listShares, publicTree, resolveShare, unlockShare, updateShare } from './shares.js';
 import { cloneGraph, cloneTree, createView, deleteView, graphOfView, listViews, meOf, selectIds, setMe, updateView } from './views.js';
 import { listSuggestions, reviewSuggestion, sendSuggestionPhoto, suggest, suggestPhoto, visibleIds } from './suggestions.js';
@@ -139,7 +140,8 @@ export function privateRoutes() {
     const { graph, view } = await graphOfView(share.tree_id, share.view_id);
     const tree = (await query(`SELECT name FROM family_trees WHERE id = $1`, [share.tree_id])).rows[0];
     const name = String(req.body?.name || share.title || view?.name || tree?.name || '').trim();
-    const result = await cloneGraph(req.family, share.tree_id, graph, { name });
+    // A link to the whole tree shows its stories, so its copy keeps them too.
+    const result = await cloneGraph(req.family, share.tree_id, graph, { name, withStories: !share.view_id });
     await logEvent(req, share.tree_id, 'link.clone', { who: { userId: req.family.userId, shareId: share.id }, details: { name, persons: result.persons } });
     res.status(201).json({ success: true, ...result });
   }));
@@ -196,6 +198,46 @@ export function privateRoutes() {
     const result = await importInto(req.family, id(req.params.id), req.body?.data);
     await log(req, id(req.params.id), 'tree.import', { details: result });
     res.json({ success: true, ...result });
+  }));
+
+  // Stories and their chapters
+  router.post('/trees/:id/stories', wrap(async (req, res) => {
+    const story = await createStory(req.family, id(req.params.id), req.body || {});
+    await log(req, id(req.params.id), 'story.create', { details: { title: story.title } });
+    res.status(201).json({ success: true, story });
+  }));
+  router.put('/trees/:id/stories/order', wrap(async (req, res) => {
+    await orderStories(req.family, id(req.params.id), req.body?.ids);
+    res.json({ success: true });
+  }));
+  router.put('/stories/:id', wrap(async (req, res) => {
+    const story = await updateStory(req.family, id(req.params.id), req.body || {});
+    await log(req, story.treeId, 'story.update', { details: { title: story.title } });
+    res.json({ success: true, story });
+  }));
+  router.delete('/stories/:id', wrap(async (req, res) => {
+    const gone = await deleteStory(req.family, id(req.params.id));
+    await log(req, gone.treeId, 'story.delete', { details: { title: gone.title } });
+    res.json({ success: true });
+  }));
+  router.post('/stories/:id/chapters', wrap(async (req, res) => {
+    const chapter = await createChapter(req.family, id(req.params.id), req.body || {});
+    await log(req, chapter.treeId, 'chapter.create', { details: { title: chapter.title, label: chapter.label } });
+    res.status(201).json({ success: true, chapter });
+  }));
+  router.put('/stories/:id/chapters/order', wrap(async (req, res) => {
+    await orderChapters(req.family, id(req.params.id), req.body?.ids);
+    res.json({ success: true });
+  }));
+  router.put('/chapters/:id', wrap(async (req, res) => {
+    const chapter = await updateChapter(req.family, id(req.params.id), req.body || {});
+    await log(req, chapter.treeId, 'chapter.update', { details: { title: chapter.title, label: chapter.label } });
+    res.json({ success: true, chapter });
+  }));
+  router.delete('/chapters/:id', wrap(async (req, res) => {
+    const gone = await deleteChapter(req.family, id(req.params.id));
+    await log(req, gone.treeId, 'chapter.delete', { details: { title: gone.title } });
+    res.json({ success: true });
   }));
 
   // People

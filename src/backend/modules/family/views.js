@@ -5,6 +5,7 @@ import { extOf, newStorageKey, storagePath } from '../shared/storage.js';
 import { buildIndex, cleanFilter, selectPeople, subGraph } from './selection.js';
 import { loadGraph } from './service.js';
 import { cleanTree } from './rules.js';
+import { exportStories, importStories, listStories } from './stories.js';
 
 /*
  * «This is me», saved views (filters) of a tree, and cloning a tree or a view
@@ -130,6 +131,9 @@ export async function graphOfView(treeId, viewId, photoBase) {
  */
 export async function cloneGraph(ctx, sourceTreeId, graph, input = {}) {
   const tree = cleanTree({ name: input.name, description: input.description || '' });
+  // The copy keeps the source's calendar, labels and drawing setting.
+  const source = (await query(`SELECT era, era_now, labels, show_unknown_parents FROM family_trees WHERE id = $1`, [sourceTreeId])).rows[0] || {};
+  const labels = Array.isArray(source.labels) ? source.labels : [];
   const sources = (
     await query(`SELECT * FROM family_persons WHERE tree_id = $1 AND id = ANY($2::int[])`, [sourceTreeId, graph.persons.map((p) => p.id)])
   ).rows;
@@ -153,8 +157,9 @@ export async function cloneGraph(ctx, sourceTreeId, graph, input = {}) {
   }
   return withTransaction(async (client) => {
     const { rows } = await client.query(
-      `INSERT INTO family_trees (name, description, created_by, updated_by) VALUES ($1, $2, $3, $3) RETURNING id`,
-      [tree.name, tree.description, ctx.userId]
+      `INSERT INTO family_trees (name, description, created_by, updated_by, era, era_now, labels, show_unknown_parents)
+       VALUES ($1, $2, $3, $3, $4, $5, $6, $7) RETURNING id`,
+      [tree.name, tree.description, ctx.userId, source.era || '', source.era_now || null, JSON.stringify(labels), source.show_unknown_parents !== false]
     );
     const newTree = rows[0].id;
     await writeAcl(client, ACL, newTree, [{ subjectType: 'user', subjectId: ctx.userId, level: 'manage' }], null);
@@ -186,6 +191,7 @@ export async function cloneGraph(ctx, sourceTreeId, graph, input = {}) {
         ]
       );
       idMap.set(p.id, res.rows[0].id);
+      if (Array.isArray(p.labels) && p.labels.length) await client.query(`UPDATE family_persons SET labels = $2 WHERE id = $1`, [res.rows[0].id, JSON.stringify(p.labels)]);
       if (fullPhotos.has(p.id)) await client.query(`UPDATE family_persons SET photo_full_key = $2 WHERE id = $1`, [res.rows[0].id, fullPhotos.get(p.id)]);
     }
     // Manual family orders, in the copy's ids (partners left out of the copy drop out).
@@ -204,12 +210,24 @@ export async function cloneGraph(ctx, sourceTreeId, graph, input = {}) {
         l.kind || 'birth',
       ]);
     }
+    const unionMap = new Map();
     for (const u of graph.unions) {
       if (!idMap.has(u.partnerA) || !idMap.has(u.partnerB)) continue;
-      await client.query(
-        `INSERT INTO family_unions (tree_id, partner_a, partner_b, status, start_date, end_date) VALUES ($1,$2,$3,$4,$5,$6)`,
+      const added = await client.query(
+        `INSERT INTO family_unions (tree_id, partner_a, partner_b, status, start_date, end_date) VALUES ($1,$2,$3,$4,$5,$6) RETURNING id`,
         [newTree, idMap.get(u.partnerA), idMap.get(u.partnerB), u.status, u.startDate, u.endDate]
       );
+      unionMap.set(String(u.id), added.rows[0].id);
+    }
+    // Stories come along, told over the people that were copied.
+    if (input.withStories) {
+      const stories = exportStories(await listStories(sourceTreeId, { onlyPersons: new Set(idMap.keys()) }));
+      await importStories(client, newTree, stories, {
+        idMap: new Map([...idMap].map(([from, to]) => [String(from), to])),
+        unionMap,
+        labels,
+        userId: ctx.userId,
+      });
     }
     if (input.meId && idMap.has(Number(input.meId))) {
       await client.query(`INSERT INTO family_me (tree_id, user_id, person_id) VALUES ($1,$2,$3)`, [newTree, ctx.userId, idMap.get(Number(input.meId))]);
@@ -222,5 +240,5 @@ export async function cloneGraph(ctx, sourceTreeId, graph, input = {}) {
 export async function cloneTree(ctx, treeId, input = {}) {
   await requireTree(ctx, treeId, LEVEL.view);
   const { graph } = await graphOfView(treeId, Number(input.viewId) || null);
-  return cloneGraph(ctx, treeId, graph, { ...input, keepContacts: true, meId: await meOf(ctx, treeId) });
+  return cloneGraph(ctx, treeId, graph, { ...input, keepContacts: true, withStories: true, meId: await meOf(ctx, treeId) });
 }

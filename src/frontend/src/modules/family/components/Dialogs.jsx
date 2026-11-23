@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { App, Button, Checkbox, DatePicker, Empty, Form, Input, List, Modal, Popconfirm, Segmented, Select, Space, Tag, Typography, Upload } from 'antd';
+import { App, Button, Checkbox, Collapse, DatePicker, Empty, Form, Input, List, Modal, Popconfirm, Segmented, Select, Space, Tag, Typography, Upload } from 'antd';
 import { CopyOutlined, DeleteOutlined, EditOutlined, FilterOutlined, InboxOutlined, LinkOutlined, LockOutlined, RobotOutlined, SaveOutlined, UserOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { useLocale } from '../../../context/LocaleContext';
@@ -10,6 +10,7 @@ import { displayName, lifeYears, searchText, shortName } from '../format';
 import { candidates } from '../kin';
 import { PartialDate, dateRule } from './PersonEditor';
 import { Avatar } from './TreeCanvas';
+import { LabelsEditor } from './StoryParts';
 
 /** Create a tree or rename one. */
 export function TreeDialog({ open, tree, onClose, onSaved }) {
@@ -18,10 +19,20 @@ export function TreeDialog({ open, tree, onClose, onSaved }) {
   const [form] = Form.useForm();
   const [saving, setSaving] = useState(false);
   useEffect(() => {
-    if (open) form.setFieldsValue({ name: tree?.name || '', description: tree?.description || '', showUnknownParents: tree?.showUnknownParents !== false });
+    if (open)
+      form.setFieldsValue({
+        name: tree?.name || '',
+        description: tree?.description || '',
+        showUnknownParents: tree?.showUnknownParents !== false,
+        era: tree?.era || '',
+        eraNow: tree?.eraNow ? String(Number(tree.eraNow.slice(0, 4))) : '',
+        labels: tree?.labels || [],
+      });
   }, [open, tree, form]);
   const submit = async () => {
-    const values = await form.validateFields();
+    const raw = await form.validateFields();
+    // «133» is stored as the year 0133 of the tree's own calendar.
+    const values = { ...raw, eraNow: raw.era && raw.eraNow ? String(raw.eraNow).trim().padStart(4, '0') : null, labels: (raw.labels || []).filter((l) => l.name?.trim()) };
     setSaving(true);
     try {
       if (tree) await familyApi.updateTree(tree.id, values);
@@ -54,6 +65,44 @@ export function TreeDialog({ open, tree, onClose, onSaved }) {
         <Form.Item name="showUnknownParents" valuePropName="checked" extra={t('family.tree.showUnknownParentsHint')}>
           <Checkbox>{t('family.tree.showUnknownParents')}</Checkbox>
         </Form.Item>
+        <Collapse
+          ghost
+          size="small"
+          className="fam-tree-more"
+          items={[
+            {
+              key: 'era',
+              label: t('family.era.title'),
+              forceRender: true,
+              children: (
+                <>
+                  <p className="fam-hint">{t('family.era.hint')}</p>
+                  <div className="fam-chapter-form__row">
+                    <Form.Item name="era" label={t('family.era.suffix')} className="fam-chapter-form__grow">
+                      <Input maxLength={16} placeholder={t('family.era.suffixPlaceholder')} />
+                    </Form.Item>
+                    <Form.Item name="eraNow" label={t('family.era.now')} tooltip={t('family.era.nowHint')} rules={[{ pattern: /^\d{1,4}$/, message: t('family.era.nowInvalid') }]}>
+                      <Input maxLength={4} inputMode="numeric" placeholder="133" />
+                    </Form.Item>
+                  </div>
+                </>
+              ),
+            },
+            {
+              key: 'labels',
+              label: t('family.labels.title'),
+              forceRender: true,
+              children: (
+                <>
+                  <p className="fam-hint">{t('family.labels.hint')}</p>
+                  <Form.Item name="labels" noStyle>
+                    <LabelsEditor />
+                  </Form.Item>
+                </>
+              ),
+            },
+          ]}
+        />
         <button type="submit" hidden aria-hidden="true" />
       </Form>
     </Modal>

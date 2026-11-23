@@ -51,25 +51,36 @@ export function todayIso() {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 }
 
+/*
+ * `now` below is the tree's «today» (time.js): undefined — the real date;
+ * a partial date — a tree in its own calendar; null — not known (no ages).
+ */
+const nowOr = (now) => (now === undefined ? todayIso() : now);
+
 /** How old someone who died would be today — only while that is plausible (≤ 110). */
-export function wouldBeNow(person) {
-  if (!person?.birthDate || person.isAlive) return null;
-  const age = ageBetween(person.birthDate, todayIso());
+export function wouldBeNow(person, now) {
+  const today = nowOr(now);
+  if (!person?.birthDate || person.isAlive || !today) return null;
+  const age = ageBetween(person.birthDate, today);
   return age !== null && age <= 110 ? age : null;
 }
 
 /** Listed as living but older than anyone plausibly is: probably has died. */
 export const IMPLAUSIBLE_AGE = 105;
-export function maybeDeceased(person) {
-  if (!person?.isAlive || !person.birthDate) return false;
-  const age = ageBetween(person.birthDate, todayIso());
+export function maybeDeceased(person, now) {
+  const today = nowOr(now);
+  if (!person?.isAlive || !person.birthDate || !today) return false;
+  const age = ageBetween(person.birthDate, today);
   return age !== null && age > IMPLAUSIBLE_AGE;
 }
 
 /** Current age of the living, age at death of the dead. */
-export function ageOf(person) {
+export function ageOf(person, now) {
   if (!person?.birthDate) return null;
-  if (person.isAlive) return ageBetween(person.birthDate, todayIso());
+  if (person.isAlive) {
+    const today = nowOr(now);
+    return today ? ageBetween(person.birthDate, today) : null;
+  }
   return person.deathDate ? ageBetween(person.birthDate, person.deathDate) : null;
 }
 
@@ -77,7 +88,9 @@ export function ageOf(person) {
 export function formatPartial(value, dateFormat = 'DD.MM.YYYY') {
   const m = String(value || '').match(DATE);
   if (!m) return '';
-  const [, y, mo, d] = m;
+  const [, yyyy, mo, d] = m;
+  // Years of a tree in its own calendar are stored as 0129 and read as 129.
+  const y = String(Number(yyyy));
   if (!mo) return y;
   const usFirst = dateFormat.startsWith('MM');
   const sep = dateFormat.includes('/') ? '/' : dateFormat.includes('-') ? '-' : '.';
@@ -91,9 +104,11 @@ export function formatPartial(value, dateFormat = 'DD.MM.YYYY') {
  * 8.3.1950, 1950-03-08, 08/03/1950 (day first unless `monthFirst`).
  * Returns '' for empty, null for something that is not a date.
  */
-export function parsePartial(text, { monthFirst = false } = {}) {
+export function parsePartial(text, { monthFirst = false, shortYears = false } = {}) {
   const raw = String(text || '').trim();
   if (!raw) return '';
+  // A tree in its own calendar: «129» is the year 129.
+  if (shortYears && /^\d{1,3}$/.test(raw) && Number(raw) > 0) return raw.padStart(4, '0');
   if (DATE.test(raw)) return validIso(raw) ? raw : null;
   // Digits only (phone keypads): DDMMYYYY or MMYYYY.
   if (/^\d{8}$/.test(raw)) return parsePartial(`${raw.slice(0, 2)}.${raw.slice(2, 4)}.${raw.slice(4)}`, { monthFirst });

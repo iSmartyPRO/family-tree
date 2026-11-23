@@ -5,6 +5,7 @@ import {
   ApartmentOutlined,
   CalendarOutlined,
   BarsOutlined,
+  BookOutlined,
   CameraOutlined,
   ClockCircleOutlined,
   CopyOutlined,
@@ -36,6 +37,11 @@ import { publicFamilyApi } from './api';
 import { indexTree } from './kin';
 import TreeCanvas from './components/TreeCanvas';
 import PersonPanel from './components/PersonPanel';
+import StoriesView from './components/StoriesView';
+import StoryPlayer from './components/StoryPlayer';
+import { SpoilerControl, SpoilerWelcome } from './components/StoryParts';
+import { useStoryGuard } from './useStoryGuard';
+import { TreeTimeContext, treeTime } from './time';
 import './family.css';
 
 const storageKey = (token) => `family_share_${token}`;
@@ -79,6 +85,7 @@ export default function PublicTree() {
   const [visitor, setVisitor] = useState(readVisitor);
   const [askName, setAskName] = useState(null);
   const [cloning, setCloning] = useState(false);
+  const [player, setPlayer] = useState(null);
   const canvas = useRef(null);
   const { message } = App.useApp();
   const { preference: themePref, setPersonalPreview, clearPersonalPreview } = useThemeMode();
@@ -120,7 +127,13 @@ export default function PublicTree() {
     load();
   }, [load]);
 
-  const index = useMemo(() => indexTree(state.data), [state.data]);
+  // A story with spoilers: the link shows the tree as the visitor knows it.
+  const guard = useStoryGuard(state.data, `s${token}`);
+  const known = guard.shown;
+  const index = useMemo(() => indexTree(known), [known]);
+  const rawPerson = (id) => state.data?.persons.find((p) => p.id === id) || null;
+  const play = (storyId, at = 0) => setPlayer({ storyId, index: at });
+  const playing = player ? (state.data?.stories || []).find((s) => s.id === player.storyId && s.chapters.length) : null;
 
   // The link's look: a default colour scheme (applied once, the visitor may
   // switch) or a forced one (applied always, the switch is hidden).
@@ -281,7 +294,11 @@ export default function PublicTree() {
     );
   } else {
     const { data } = state;
+    const time = treeTime(data.tree, known?.now);
+    const labelMap = new Map((data.tree.labels || []).map((l) => [l.id, l]));
+    const shownMode = mode === 'calendar' && data.tree.era ? 'tree' : mode;
     content = (
+      <TreeTimeContext.Provider value={time}>
       <div className="fam-view fam-view--public">
         <div className="fam-public-head">
           <span className="fam-public-head__icon">
@@ -291,22 +308,24 @@ export default function PublicTree() {
             <h1>{data.tree.name}</h1>
             {data.tree.description && <p>{data.tree.description}</p>}
             <div className="fam-public-head__chips">
-              <span className="fam-chip">{t('family.peopleCount', { count: data.persons.length })}</span>
+              <span className="fam-chip">{t('family.peopleCount', { count: known.persons.length })}</span>
               {canPropose && <span className="fam-chip fam-chip--accent">{t(`family.share.level.${access}`)}</span>}
             </div>
           </div>
           <div className="fam-public-head__tools">
+            <SpoilerControl guard={guard} compact={phone} />
             <Segmented
               block={phone}
               className="fam-modes"
-              value={mode}
+              value={shownMode}
               onChange={setMode}
               options={[
                 { value: 'tree', icon: <ApartmentOutlined />, label: t('family.view.tree') },
+                data.stories?.some((s) => s.chapters.length) && { value: 'stories', icon: <BookOutlined />, label: t('family.view.stories') },
                 { value: 'timeline', icon: <BarsOutlined />, label: t('family.view.timeline') },
                 { value: 'list', icon: <UnorderedListOutlined />, label: t('family.view.list') },
-                { value: 'calendar', icon: <CalendarOutlined />, label: t('family.view.calendar') },
-              ]}
+                !data.tree.era && { value: 'calendar', icon: <CalendarOutlined />, label: t('family.view.calendar') },
+              ].filter(Boolean)}
             />
             {data.share?.allowClone && (
               <Button
@@ -328,18 +347,24 @@ export default function PublicTree() {
             </button>
           </div>
         )}
-        <div className={`fam-body${selectedId ? ' has-panel' : ''}`}>
-          {mode === 'calendar' ? (
-            <CalendarView data={data} selectedId={selectedId} onSelect={setSelectedId} title={data.tree.name} />
-          ) : mode === 'list' ? (
-            <PeopleList data={data} selectedId={selectedId} onSelect={setSelectedId} />
-          ) : mode === 'timeline' ? (
-            <TimelineView data={data} selectedId={selectedId} onSelect={setSelectedId} />
+        <div className={`fam-body${selectedId && shownMode !== 'stories' ? ' has-panel' : ''}`}>
+          {shownMode === 'stories' ? (
+            <StoriesView data={data} shown={known} guard={guard} canEdit={false} onPlay={play} />
+          ) : shownMode === 'calendar' ? (
+            <CalendarView data={known} selectedId={selectedId} onSelect={setSelectedId} title={data.tree.name} />
+          ) : shownMode === 'list' ? (
+            <PeopleList data={known} selectedId={selectedId} onSelect={setSelectedId} />
+          ) : shownMode === 'timeline' ? (
+            <TimelineView data={known} selectedId={selectedId} onSelect={setSelectedId} />
           ) : (
-            <TreeCanvas ref={canvas} data={data} selectedId={selectedId} onSelect={setSelectedId} canEdit={false} homeId={data.tree.homePersonId} />
+            <TreeCanvas ref={canvas} data={known} selectedId={selectedId} onSelect={setSelectedId} canEdit={false} homeId={data.tree.homePersonId} />
           )}
-          {selectedId && index.persons.has(selectedId) && (
+          {selectedId && shownMode !== 'stories' && index.persons.has(selectedId) && (
             <PersonPanel
+              story={guard.story}
+              storyUpto={guard.upto}
+              labels={labelMap}
+              onChapter={play}
               index={index}
               personId={selectedId}
               canEdit={false}
@@ -347,17 +372,17 @@ export default function PublicTree() {
               extraActions={
                 canPropose && (
                   <>
-                    <Button type="primary" icon={<EditOutlined />} onClick={() => setEditor({ person: index.persons.get(selectedId) })}>
+                    <Button type="primary" icon={<EditOutlined />} onClick={() => setEditor({ person: rawPerson(selectedId) })}>
                       {t('family.public.complete')}
                     </Button>
-                    <Upload accept="image/jpeg,image/png,image/webp" showUploadList={false} beforeUpload={sendPhoto(index.persons.get(selectedId))}>
+                    <Upload accept="image/jpeg,image/png,image/webp" showUploadList={false} beforeUpload={sendPhoto(rawPerson(selectedId))}>
                       <Button icon={<CameraOutlined />}>{t('family.public.photo')}</Button>
                     </Upload>
                     <Dropdown
                       trigger={['click']}
                       menu={{
                         items: ['parent', 'child', 'partner', 'sibling'].map((type) => ({ key: type, label: t(`family.add.${type}`) })),
-                        onClick: ({ key }) => setEditor(relativeDraft(index.persons.get(selectedId), key)),
+                        onClick: ({ key }) => setEditor(relativeDraft(rawPerson(selectedId), key)),
                       }}
                     >
                       <Button icon={<UserAddOutlined />}>{t('family.panel.addRelative')}</Button>
@@ -373,6 +398,24 @@ export default function PublicTree() {
           )}
         </div>
       </div>
+      {playing && (
+        <StoryPlayer
+          data={data}
+          story={playing}
+          start={player.index}
+          guardUpto={guard.guarded && guard.story?.id === playing.id ? guard.upto : null}
+          onReached={guard.story?.id === playing.id ? guard.reached : undefined}
+          onClose={() => setPlayer(null)}
+          onPerson={(personId) => {
+            setPlayer(null);
+            setMode('tree');
+            setSelectedId(personId);
+            setTimeout(() => canvas.current?.centerOn(personId), 120);
+          }}
+        />
+      )}
+      <SpoilerWelcome guard={guard} onPlay={play} />
+      </TreeTimeContext.Provider>
     );
   }
 

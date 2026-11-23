@@ -8,6 +8,7 @@ import { LEVEL, contextFromRequest, httpError, levelOn, requireLevel } from '../
 import { LINK_PASSWORD_MIN } from '../shared/linkPasswords.js';
 import { familySettings } from './service.js';
 import { graphOfView } from './views.js';
+import { listStories } from './stories.js';
 
 /*
  * Public links to a tree or one of its views: /t/<token>. A random token (not
@@ -192,7 +193,7 @@ export async function unlockShare(token, password) {
 }
 
 export async function publicTree(row) {
-  const tree = (await query(`SELECT name, description, home_person_id, show_unknown_parents FROM family_trees WHERE id = $1`, [row.tree_id])).rows[0];
+  const tree = (await query(`SELECT name, description, home_person_id, show_unknown_parents, era, era_now, labels FROM family_trees WHERE id = $1`, [row.tree_id])).rows[0];
   const { graph, view } = await graphOfView(row.tree_id, row.view_id, `/api/t/${row.token}`);
   // Visitors see the family, not how to reach people: contacts stay private.
   for (const person of graph.persons) person.contacts = {};
@@ -202,6 +203,9 @@ export async function publicTree(row) {
       description: view ? view.description : tree.description || '',
       homePersonId: view?.filter.focus || tree.home_person_id || null,
       showUnknownParents: tree.show_unknown_parents !== false,
+      era: tree.era || '',
+      eraNow: tree.era_now || null,
+      labels: Array.isArray(tree.labels) ? tree.labels : [],
     },
     share: {
       access: ACCESS.includes(row.access) ? row.access : 'view',
@@ -211,6 +215,8 @@ export async function publicTree(row) {
       assistant: Boolean(row.assistant),
     },
     ...graph,
+    // Stories are told over the whole tree: a link to a part of it does not carry them.
+    stories: view ? [] : await listStories(row.tree_id),
   };
 }
 

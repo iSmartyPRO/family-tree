@@ -14,6 +14,12 @@ import { ensureAclTable } from '../shared/acl.js';
  *   family_me       «this is me»: which person a user is, per tree
  *   family_views    saved filters (focus, side, depth…) over one tree
  *   family_suggestions  changes proposed through links, waiting for review
+ *   family_log      who did what: members and link visitors
+ *   family_stories  stories told over a tree; family_chapters — their chapters
+ *                   with typed events (who appears, is born, dies, marries…)
+ *
+ * A tree may live in its own calendar (era, era_now) and carry labels
+ * (houses, branches, sides) that its people hold.
  *
  * Couples and families are not drawn from stored coordinates: the tree is
  * laid out from these links every time (frontend modules/family/layout.js).
@@ -197,4 +203,50 @@ export async function ensureFamilySchema() {
     )
   `);
   await query(`CREATE INDEX IF NOT EXISTS family_log_tree_idx ON family_log (tree_id, created_at DESC)`);
+
+  // A tree in its own calendar (a saga, a chronicle): a year suffix and «now».
+  await query(`ALTER TABLE family_trees ADD COLUMN IF NOT EXISTS era VARCHAR(16) NOT NULL DEFAULT ''`);
+  await query(`ALTER TABLE family_trees ADD COLUMN IF NOT EXISTS era_now VARCHAR(10)`);
+  // Labels (houses, branches, clans, sides) of a tree and the ones a person holds.
+  await query(`ALTER TABLE family_trees ADD COLUMN IF NOT EXISTS labels JSONB NOT NULL DEFAULT '[]'::jsonb`);
+  await query(`ALTER TABLE family_persons ADD COLUMN IF NOT EXISTS labels JSONB NOT NULL DEFAULT '[]'::jsonb`);
+
+  // Stories told over a tree: ordered chapters with typed events (storyRules.js).
+  await query(`
+    CREATE TABLE IF NOT EXISTS family_stories (
+      id SERIAL PRIMARY KEY,
+      tree_id INTEGER NOT NULL REFERENCES family_trees(id) ON DELETE CASCADE,
+      title VARCHAR(120) NOT NULL,
+      subtitle VARCHAR(200) NOT NULL DEFAULT '',
+      description TEXT NOT NULL DEFAULT '',
+      color VARCHAR(16) NOT NULL DEFAULT 'indigo',
+      spoilers BOOLEAN NOT NULL DEFAULT FALSE,
+      position INTEGER NOT NULL DEFAULT 0,
+      created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      updated_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+  await query(`CREATE INDEX IF NOT EXISTS family_stories_tree_idx ON family_stories (tree_id, position)`);
+  await query(`
+    CREATE TABLE IF NOT EXISTS family_chapters (
+      id SERIAL PRIMARY KEY,
+      story_id INTEGER NOT NULL REFERENCES family_stories(id) ON DELETE CASCADE,
+      tree_id INTEGER NOT NULL REFERENCES family_trees(id) ON DELETE CASCADE,
+      position INTEGER NOT NULL DEFAULT 0,
+      part VARCHAR(80) NOT NULL DEFAULT '',
+      label VARCHAR(40) NOT NULL DEFAULT '',
+      title VARCHAR(160) NOT NULL,
+      year VARCHAR(10),
+      "when" VARCHAR(80) NOT NULL DEFAULT '',
+      teaser VARCHAR(400) NOT NULL DEFAULT '',
+      body TEXT NOT NULL DEFAULT '',
+      focus JSONB NOT NULL DEFAULT '[]'::jsonb,
+      events JSONB NOT NULL DEFAULT '[]'::jsonb,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+  await query(`CREATE INDEX IF NOT EXISTS family_chapters_story_idx ON family_chapters (story_id, position)`);
 }

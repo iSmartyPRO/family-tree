@@ -4,6 +4,15 @@ import { buildTimeline } from '../timeline';
 import { buildFamilies, lineage } from '../layout';
 import { ageOf, displayName, lifeYears } from '../format';
 import { Avatar } from './TreeCanvas';
+import { useTreeTime } from '../time';
+
+/** The year that counts as «now» on the axis: today, the tree's own year, or the latest known one. */
+function axisNow(now, persons) {
+  if (now === undefined) return new Date().getFullYear();
+  if (now) return Number(now.slice(0, 4));
+  const years = persons.flatMap((p) => [p.birthDate, p.deathDate]).filter(Boolean).map((v) => Number(v.slice(0, 4)));
+  return years.length ? Math.max(...years) : new Date().getFullYear();
+}
 
 const ROW = 40;
 const HEAD = 34;
@@ -31,7 +40,8 @@ export default function TimelineView({ data, selectedId, onSelect, onOpen }) {
     return () => ro.disconnect();
   }, []);
 
-  const tl = useMemo(() => buildTimeline(data.persons, data.parents, data.unions), [data]);
+  const { now } = useTreeTime();
+  const tl = useMemo(() => buildTimeline(data.persons, data.parents, data.unions, axisNow(now, data.persons)), [data, now]);
   const graph = useMemo(() => buildFamilies(data.persons, data.parents, data.unions), [data]);
   const near = useMemo(() => {
     if (!selectedId) return null;
@@ -180,7 +190,7 @@ export default function TimelineView({ data, selectedId, onSelect, onOpen }) {
             const p = row.person;
             const x1 = x(row.from);
             const w = Math.max(6, x(row.to) - x1);
-            const age = ageOf(p);
+            const age = ageOf(p, now);
             const label = `${lifeYears(p) || (row.estimated ? `~${row.from}` : '')}${age !== null ? ` · ${t('family.ageShort', { count: age })}` : ''}`;
             const y = i * ROW + 10;
             return (

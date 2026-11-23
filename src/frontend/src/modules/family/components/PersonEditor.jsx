@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { App, Button, Collapse, Drawer, Form, Input, Segmented, Space, Switch, Upload } from 'antd';
+import { App, Button, Collapse, Drawer, Form, Input, Segmented, Select, Space, Switch, Upload } from 'antd';
 import { CameraOutlined, DeleteOutlined, ManOutlined, QuestionOutlined, WomanOutlined } from '@ant-design/icons';
 import { useLocale } from '../../../context/LocaleContext';
 import { useRegional } from '../../../lib/datetime';
@@ -8,6 +8,7 @@ import { familyApi, prepareFull, preparePhoto } from '../api';
 import { formatPartial, parsePartial, shortName } from '../format';
 import { Avatar } from './TreeCanvas';
 import DatePick from './DatePick';
+import { useTreeTime } from '../time';
 
 const CONTACTS = ['phone', 'email', 'whatsapp', 'telegram', 'instagram', 'facebook', 'linkedin', 'vk', 'ok', 'website'];
 
@@ -15,6 +16,9 @@ const CONTACTS = ['phone', 'email', 'whatsapp', 'telegram', 'instagram', 'facebo
 export function PartialDate({ value, onChange, onBlur, placeholder, id }) {
   const regional = useRegional();
   const monthFirst = regional.dateFormat?.startsWith('MM');
+  // A tree in its own calendar: years are short («129») and typed, not picked.
+  const { era } = useTreeTime();
+  const shortYears = Boolean(era);
   const [text, setText] = useState(typeof value === 'string' ? formatPartial(value, regional.dateFormat) : '');
   // Follow the form only when it holds a real date that differs from what is
   // typed — never wipe a date that is still being typed.
@@ -25,8 +29,8 @@ export function PartialDate({ value, onChange, onBlur, placeholder, id }) {
       return;
     }
     if (typeof value !== 'string') return;
-    setText((current) => (parsePartial(current, { monthFirst }) === value ? current : formatPartial(value, regional.dateFormat)));
-  }, [value, regional.dateFormat, monthFirst]);
+    setText((current) => (parsePartial(current, { monthFirst, shortYears }) === value ? current : formatPartial(value, regional.dateFormat)));
+  }, [value, regional.dateFormat, monthFirst, shortYears]);
   return (
     <Input
       id={id}
@@ -34,14 +38,18 @@ export function PartialDate({ value, onChange, onBlur, placeholder, id }) {
       placeholder={placeholder}
       // «decimal» keeps a separator key on phone keypads («numeric» has none on iOS).
       suffix={
-        <DatePick
-          monthFirst={monthFirst}
-          value={parsePartial(text, { monthFirst }) || undefined}
-          onChange={(iso) => {
-            setText(iso ? formatPartial(iso, regional.dateFormat) : '');
-            onChange?.(iso);
-          }}
-        />
+        shortYears ? (
+          <span className="fam-era-suffix">{era}</span>
+        ) : (
+          <DatePick
+            monthFirst={monthFirst}
+            value={parsePartial(text, { monthFirst }) || undefined}
+            onChange={(iso) => {
+              setText(iso ? formatPartial(iso, regional.dateFormat) : '');
+              onChange?.(iso);
+            }}
+          />
+        )
       }
       inputMode="decimal"
       autoComplete="off"
@@ -50,7 +58,7 @@ export function PartialDate({ value, onChange, onBlur, placeholder, id }) {
         // Eight digits in a row: put the dots in right away.
         if (/^\d{8}$/.test(next)) next = `${next.slice(0, 2)}.${next.slice(2, 4)}.${next.slice(4)}`;
         setText(next);
-        const parsed = parsePartial(next, { monthFirst });
+        const parsed = parsePartial(next, { monthFirst, shortYears });
         onChange?.(parsed === null ? { invalid: next } : parsed);
       }}
       onBlur={(event) => {
@@ -70,7 +78,7 @@ export const dateRule = (t) => ({
  * Add or edit a person. `draft` = { person?, relation?, title?, defaults? }.
  * Saving a new person with a relation links them in the same request.
  */
-export default function PersonEditor({ open, treeId, draft, onClose, onSaved, onSubmitOverride, submitLabel, hideContacts = false, publicMode = false }) {
+export default function PersonEditor({ open, treeId, draft, onClose, onSaved, onSubmitOverride, submitLabel, hideContacts = false, publicMode = false, labels = [] }) {
   const { t } = useLocale();
   const { message } = App.useApp();
   const [form] = Form.useForm();
@@ -105,6 +113,7 @@ export default function PersonEditor({ open, treeId, draft, onClose, onSaved, on
             deathPlace: person.deathPlace,
             occupation: person.occupation,
             bio: person.bio,
+            labels: person.labels || [],
             contacts: person.contacts || {},
           }
         : {}),
@@ -272,6 +281,16 @@ export default function PersonEditor({ open, treeId, draft, onClose, onSaved, on
         <Form.Item name="occupation" label={t('family.form.occupation')}>
           <Input maxLength={160} />
         </Form.Item>
+        {!publicMode && labels.length > 0 && (
+          <Form.Item name="labels" label={t('family.labels.person')} extra={t('family.labels.personHint')}>
+            <Select
+              mode="multiple"
+              allowClear
+              optionFilterProp="label"
+              options={labels.map((l) => ({ value: l.id, label: `${l.emblem ? `${l.emblem} ` : ''}${l.name}${l.group ? ` · ${l.group}` : ''}` }))}
+            />
+          </Form.Item>
+        )}
         <Form.Item name="bio" label={t('family.form.bio')}>
           <Input.TextArea autoSize={{ minRows: 3, maxRows: 10 }} maxLength={20000} placeholder={t('family.form.bioPlaceholder')} />
         </Form.Item>
